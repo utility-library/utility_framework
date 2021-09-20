@@ -37,21 +37,19 @@ Utility = {}
     end
 
     TriggerServerCallbackSync = function(name, _function, ...)
-        local a = false
+        local p = promise.new()        
         local handlerData = nil
 
         RegisterNetEvent("Utility_Callback:"..name.."_l")
         handlerData = AddEventHandler("Utility_Callback:"..name.."_l", function(...)
             _function(...)
             RemoveEventHandler(handlerData)
-            a = true
+            p:resolve()
         end)
 
         SavedTriggerServerEvent("Utility_Callback:"..name, ...)
 
-        while not a do
-            Citizen.Wait(1)
-        end
+        Citizen.Await(p)
     end
 
 --// Internal Emitter

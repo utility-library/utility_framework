@@ -8,24 +8,22 @@ end
     RegisterCommand("giveweapon", function(source, args)
         local uPlayer = GetuPlayer(source)
 
-        if uPlayer.group ~= "user" then
-            local uPlayer = GetuPlayer(tonumber(args[1]))
+        if uPlayer.group ~= "user" and args[1] and args[2] and args[3] then
+            if args[1] == "0" then args[1] = source end
 
+            local uPlayer = GetuPlayer(tonumber(args[1]))
             uPlayer.AddWeapon(args[2], tonumber(args[3]))
-            print(uPlayer.HaveWeapon(args[2]))
         end
     end)
 
     RegisterCommand("removeweapon", function(source, args)
         local uPlayer = GetuPlayer(source)
 
-        if uPlayer.group ~= "user" then
-            if args[1] ~= source and args[1] ~= nil then
-                local uPlayer = GetuPlayer(tonumber(args[1]))
-                uPlayer.RemoveWeapon(args[2])
-            else
-                uPlayer.RemoveWeapon(args[2])
-            end
+        if uPlayer.group ~= "user" and args[1] and args[2] then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.RemoveWeapon(args[2])
         end
     end)
 
@@ -33,16 +31,12 @@ end
         local uPlayer = GetuPlayer(source)
 
         if uPlayer.group ~= "user" then
-            if args[1] ~= source and args[1] ~= nil then
-                local uPlayer = GetuPlayer(tonumber(args[1]))
+            if args[1] == "0" or args[1] == nil then args[1] = source end
 
-                for name, ammo in pairs(uPlayer.GetWeapons()) do
-                    uPlayer.RemoveWeapon(name)
-                end
-            else
-                for name, ammo in pairs(uPlayer.GetWeapons()) do
-                    uPlayer.RemoveWeapon(name)
-                end
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            
+            for name, ammo in pairs(uPlayer.GetWeapons()) do
+                uPlayer.RemoveWeapon(name)
             end
         end
     end)
@@ -52,12 +46,10 @@ end
         local uPlayer = GetuPlayer(source)
 
         if uPlayer.group ~= "user" then
-            if args[1] ~= source and args[1] ~= nil then
-                local uPlayer = GetuPlayer(tonumber(args[1]))
-                uPlayer.Revive()
-            else
-                uPlayer.Revive()
-            end
+            if args[1] == "0" or args[1] == nil then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.Revive()
         end
     end)
 
@@ -65,7 +57,7 @@ end
     RegisterCommand("goto", function(source, args)
         local uPlayer =  GetuPlayer(source)
         
-        if uPlayer.group ~= "user" then
+        if uPlayer.group ~= "user" and args[1] then
             local player = GetPlayerPed(tonumber(args[1]))
             
             SetEntityCoords(GetPlayerPed(source), GetEntityCoords(player))
@@ -75,7 +67,7 @@ end
     RegisterCommand("bring", function(source, args)
         local uPlayer =  GetuPlayer(source)
         
-        if uPlayer.group ~= "user" then
+        if uPlayer.group ~= "user" and args[1] then
             local player = GetPlayerPed(tonumber(args[1]))
 
             SetEntityCoords(player, GetEntityCoords(GetPlayerPed(source)))
@@ -87,14 +79,25 @@ end
         local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
-            if args[1] then
-                uPlayer = GetuPlayer(tonumber(args[1]))
-                uPlayer.AddItem(args[2], tonumber(args[3]), "ciao", {a=true, b="test", c=1})
-            else
-                uPlayer.AddItem(args[1], tonumber(args[2]), "ciao", {a=true, b="test", c=1})
-            end
+            if args[1] == "0" then args[1] = source end
+
+            uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.AddItem(args[2], tonumber(args[3]), args[4] or nil)
         end
     end)
+    RegisterCommand("removeitem", function(source, args)
+        local uPlayer = GetuPlayer(source)
+        
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            uPlayer.RemoveItem(args[2], tonumber(args[3]), args[4] or "nodata")
+        end
+    end)
+
+
+
+    -- Probably to remove
     RegisterCommand("getinv", function(source, args)
         local uPlayer = GetuPlayer(source)
         
@@ -126,20 +129,80 @@ end
                 uPlayer = GetuPlayer(tonumber(args[1]))
             end
 
-            -- "MaxWeight = 300 Weight = 5"
-            -- print("MaxWeight = "..uPlayer.MaxWeight().." Weight = "..uPlayer.Weight())
-
-            -- "Water Limit = 5, Can carry water = false"
-            -- print("Water Limit = "..uPlayer.GetItem("water").limit..", Can carry water = "..tostring(uPlayer.CanCarryItem("water", 6)))
+            if Config.Inventory.type == "weight" then
+                -- "MaxWeight = 300 Weight = 5"
+                print("MaxWeight = "..uPlayer.MaxWeight().." Weight = "..uPlayer.Weight())
+            elseif Config.Inventory.type == "limit" then
+                -- "Water Limit = 5, Can carry water = false"
+                print("Water Limit = "..uPlayer.GetItem("water").limit..", Can carry water = "..tostring(uPlayer.CanCarryItem("water", 6)))
+            end
         end
     end)
 
-RegisterCommand("setjob", function(source, args)
-    local uPlayer =  GetuPlayer(source)
-    
-    if uPlayer.group ~= "user" then
-        local uPlayer = GetuPlayer(tonumber(args[1]))
+-- Job
+    RegisterCommand("setjob", function(source, args)
+        local uPlayer =  GetuPlayer(source)
         
-        uPlayer.SetJob(args[2], tonumber(args[3]))
-    end
-end)
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.SetJob(args[2], tonumber(args[3]))
+        end
+    end)
+
+    RegisterCommand("setgrade", function(source, args)
+        local uPlayer =  GetuPlayer(source)
+        
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.SetJobGrade(tonumber(args[2]))
+        end
+    end)
+
+    RegisterCommand("setduty", function(source, args)
+        local uPlayer =  GetuPlayer(source)
+        
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.SetDuty((args[2] == "true" or args[2] == "1"))
+        end
+    end)
+
+-- Money
+    RegisterCommand("givemoney", function(source, args)
+        local uPlayer =  GetuPlayer(source)
+        
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.AddMoney(args[2], tonumber(args[3]))
+        end
+    end)
+
+    RegisterCommand("removemoney", function(source, args)
+        local uPlayer =  GetuPlayer(source)
+        
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.RemoveMoney(args[2], tonumber(args[3]))
+        end
+    end)
+
+    RegisterCommand("setmoney", function(source, args)
+        local uPlayer =  GetuPlayer(source)
+        
+        if uPlayer.group ~= "user" then
+            if args[1] == "0" then args[1] = source end
+
+            local uPlayer = GetuPlayer(tonumber(args[1]))
+            uPlayer.SetMoney(args[2], tonumber(args[3]))
+        end
+    end)

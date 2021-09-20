@@ -14,21 +14,19 @@ TriggerServerCallbackAsync = function(name, _function, ...)
 end
 
 TriggerServerCallbackSync = function(name, _function, ...)
-    local a = false
+    local p = promise.new()        
     local handlerData = nil
 
     RegisterNetEvent("Utility:"..name.."_l")
     handlerData = AddEventHandler("Utility:"..name.."_l", function(...)
         _function(...)
-        a = true
         RemoveEventHandler(handlerData)
+        p:resolve()
     end)
 
     TriggerServerEvent("Utility:"..name, ...)
 
-    while not a do
-        Citizen.Wait(1)
-    end
+    Citizen.Await(p)
 end
 
 GetLabel = function(key, header, language)
@@ -137,4 +135,13 @@ uPlayerPopulate = function(self)
             end
 
     return self
+end
+
+--// Addons
+addon = function(name)
+    local module = LoadResourceFile("utility_framework", "client/addons/"..name..".lua")
+    
+    if module then
+        return load(module)()
+    end
 end

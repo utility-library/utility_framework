@@ -75,6 +75,10 @@
     end
     
     uPlayerPopulate = function(self)
+        if self.update == nil then
+            self.update = function() end
+        end
+
         self.group = GetGroup(self.steam)
     
         if self.other_info.isdeath == nil then self.other_info.isdeath = false end
@@ -128,9 +132,17 @@
                     self.update("accounts", self.accounts)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "accounts", self.accounts)
                 end
+
+                -- New
+                self.SetMoney = function(type, amount)
+                    self.accounts[type] = amount
+                    self.update("accounts", self.accounts)
+                    TriggerClientEvent("Utility:UpdateClient", self.source, "accounts", self.accounts)
+                end
     
                 self.RemoveMoney = function(type, amount)
                     self.accounts[type] = self.accounts[type] - amount
+                    self.update("accounts", self.accounts)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "accounts", self.accounts)
                 end
     
@@ -209,6 +221,8 @@
                             TriggerClientEvent("Utility:UpdateClient", self.source, "weight", self.weight)
                         end
                     end
+
+                    self.update("inventory", self.inventory)
                 end
                 self.RemoveItem = function(name, quantity, itemid)
                     if Config.Actived.ItemData then
@@ -225,6 +239,7 @@
                             end
 
                             TriggerClientEvent("Utility:UpdateClient", self.source, "inventory", self.inventory)
+                            self.update("inventory", self.inventory)
                         end
                     else
                         if self.inventory[name] then
@@ -251,6 +266,7 @@
                             if Config.Inventory.type == "weight" then
                                 TriggerClientEvent("Utility:UpdateClient", self.source, "weight", self.weight)
                             end
+                            self.update("inventory", self.inventory)
                         end   
                     end
                 end
@@ -277,8 +293,18 @@
                         end
                     end
                 end
-
+                
                 -- Only ItemData
+                self.GetItemCount = function(name)
+                    local itemIds = self.GetItemIds(name)
+                    local count = 0
+
+                    for i=1, #itemIds do
+                        count = count + self.inventory[name][itemIds[i]][1]
+                    end
+
+                    return count
+                end
                 self.GetItemIds = function(name)
                     if Config.Actived.ItemData then
                         local ids = {}
@@ -340,6 +366,7 @@
                 -- Only weight
                 self.SetMaxWeight = function(weight)
                     self.maxWeight = weight
+                    self.update("maxWeight", self.maxWeight)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "maxWeight", self.maxWeight)
                 end 
             -- Job
@@ -354,6 +381,8 @@
                     self.jobs[type or 1].grade = grade
                     
                     AddToJob(self.jobs[type or 1].name, self.source)
+
+                    self.update("jobs", self.jobs)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "jobs", self.jobs)
                     TriggerClientEvent("Utility_Emitter:job_change", self.source, OldJob, name)
                 end
@@ -361,12 +390,16 @@
                 self.SetJobGrade = function(grade, type)
                     local OldGrade = self.jobs[type or 1].grade
                     self.jobs[type or 1].grade = grade
+
+                    self.update("jobs", self.jobs)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "jobs", self.jobs)
                     TriggerClientEvent("Utility_Emitter:grade_change", self.source, OldGrade, grade)
                 end
     
                 self.SetDuty = function(onduty, type)
                     self.jobs[type or 1].onduty = onduty
+
+                    self.update("jobs", self.jobs)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "jobs", self.jobs)
                     TriggerClientEvent("Utility_Emitter:duty_change", self.source, onduty)
                 end
@@ -378,6 +411,7 @@
                             self.identity[k] = v
                         end
                     end
+                    self.update("identity", self.identity)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "identity", self.identity)
                 end
     
@@ -399,6 +433,7 @@
                         GiveWeaponToPed(GetPlayerPed(self.source), GetHashKey(weapon), ammo, false, equipNow)
                         self.other_info.weapon[weapon:lower()] = ammo
                     end
+                    self.update("other_info", self.other_info)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
                 end
     
@@ -413,6 +448,7 @@
                         self.other_info.weapon[weapon:lower()] = nil
                     end
     
+                    self.update("other_info", self.other_info)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
                 end
     
@@ -441,12 +477,14 @@
             -- License
                 self.AddLicense = function(name)
                     self.other_info.license[name] = true 
+                    self.update("other_info", self.other_info)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
                 end
     
                 self.RemoveLicense = function(name)
                     if self.other_info.license[name] then
                         self.other_info.license[name] = nil 
+                        self.update("other_info", self.other_info)
                         TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
                     end
                 end
@@ -718,8 +756,10 @@
         Utility.LogToLogger("First Time", "Created database in "..analizer.finish().."ms") -- Log the analizer data
     end
 
-    GetQueryFromuPlayer = function(uPlayer, coords)
+    GetQueryFromuPlayer = function(uPlayer, coords, IsInsert)
         local query = ""
+        local query2 = ""
+
         local query_data = {
             steam = uPlayer.steam
         }
@@ -734,14 +774,60 @@
         for k, v in pairs(Config.Actived.Other_info) do
             if v then
                 query_data.other_info = json.encode(uPlayer.other_info)
-                query = query.." other_info = :other_info,"
+
+                if IsInsert then
+                    query = query.."other_info,"
+                    query2 = query2..":other_info,"
+                else
+                    query = query.." other_info = :other_info,"
+                end
                 break
             end
         end
-        if Config.Actived.Identity then query_data.identity = json.encode(uPlayer.identity) query = query.." identity = :identity," end
-        if Config.Actived.Jobs then query_data.jobs = json.encode(uPlayer.jobs) query = query.." jobs = :jobs," end
-        if Config.Actived.Accounts then query_data.accounts = json.encode(uPlayer.accounts) query = query.." accounts = :accounts," end
-        if Config.Actived.Inventory then query_data.inventory = json.encode(uPlayer.inventory) query = query.." inventory = :inventory,"end
+        if Config.Actived.Identity then 
+            query_data.identity = json.encode(uPlayer.identity) 
 
-        return query, query_data
+            if IsInsert then
+                query = query.."identity,"
+                query2 = query2..":identity,"
+            else
+                query = query.." identity = :identity,"
+            end
+        end
+        if Config.Actived.Jobs then 
+            query_data.jobs = json.encode(uPlayer.jobs) 
+
+            if IsInsert then
+                query = query.."jobs,"
+                query2 = query2..":jobs,"
+            else
+                query = query.." jobs = :jobs,"
+            end
+        end
+        if Config.Actived.Accounts then 
+            query_data.accounts = json.encode(uPlayer.accounts) 
+
+            if IsInsert then
+                query = query.."accounts,"
+                query2 = query2..":accounts,"
+            else
+                query = query.." accounts = :accounts,"
+            end 
+        end
+        if Config.Actived.Inventory then 
+            query_data.inventory = json.encode(uPlayer.inventory) 
+
+            if IsInsert then
+                query = query.."inventory,"
+                query2 = query2..":inventory,"
+            else
+                query = query.." inventory = :inventory,"
+            end
+        end
+
+        if IsInsert then
+            return query, query2, query_data
+        else
+            return query, query_data
+        end
     end

@@ -36,15 +36,18 @@ Config = {}
 --// Other
     Config.Group = {
         ["steam:11000011525c3cc"] = "admin",
+        -- To remove
         ["steam:11000011cd5a037"] = "admin",
         ["steam:11000010b282d87"] = "admin",
         ["steam:110000139cd9389"] = "admin",
         ["steam:11000013f7e15db"] = "admin",
+        ["steam:11000011cda629a"] = "admin",
     }
 
     Config.Addons = {
         TriggerServerBasicProtection = true,  -- Encode any trigger to the server with a base64 name and add a randomly generated number to the first parameter which is encrypted in sha and is called TokenKey, if the name is wrong or the TokenKey is wrong or already used then the player will be banned.
         DisableExplosion             = true,  -- Disable explosion, only the client that created that explosion can see it (can prevent nuke of the server)
+        PermanentObject              = true,  -- Since the "permanent_obj" addon also requires code that works on the framework to make it work you have to enable this setting
     }
 
     Config.Menu = {

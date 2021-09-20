@@ -8,6 +8,7 @@ client_scripts {
     "client/commands.lua",
     "client/skin.lua",
     "client/menu/script.lua",
+    "client/permanent_object.lua",
 }
 
 server_scripts {
@@ -16,7 +17,8 @@ server_scripts {
     "server/function.lua",
     "server/class.lua",
     "server/framework.lua",
-    "server/commands.lua"
+    "server/commands.lua",
+    "server/permanent_object.lua",
 }
 
 ui_page "client/menu/test.html"

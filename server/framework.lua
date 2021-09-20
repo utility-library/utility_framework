@@ -127,7 +127,11 @@
         local uPlayer = Utility.PlayersData[steam]
 
         if not uPlayer then -- New Player
-            uPlayer = GenerateTemplateuPlayer(source, steam)
+            Utility.PlayersData[steam] = GenerateTemplateuPlayer(source, steam) -- Generate basic template
+            Utility.PlayersData[steam] = uPlayerPopulate(Utility.PlayersData[steam]) -- Populate the uPlayer with the function
+            
+            uPlayer = Utility.PlayersData[steam]
+
             uPlayer.IsNew = true
 
             -- Log
@@ -180,24 +184,29 @@
             end
         end
 
-        local x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(source)))
+        if source ~= 0 or source ~= nil then
+            local x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(source)))
 
-        --print("Steam = "..steam)
-        --print("Coords = ", x,y,z)
+            --print("Steam = "..steam)
+            --print("Coords = ", x,y,z)
 
-        if x ~= 0.0 and y ~= 0.0 then
-            analizer.start()
-            local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(source)[1]]
+            if x ~= 0.0 and y ~= 0.0 then
+                analizer.start()
+                local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(source)[1]]
 
-            -- function.lua:649
-            local query, query_data = GetQueryFromuPlayer(uPlayer, {x=x, y=y, z=z})
+                -- function.lua:649
+                RemoveFromJob(uPlayer.jobs[1].name, uPlayer.source)
 
-            RemoveFromJob(uPlayer.jobs[1].name, uPlayer.source)
-
-            oxmysql:executeSync('UPDATE users SET '..query:sub(1, -2)..' WHERE steam = :steam', query_data)
-            Utility.LogToLogger("Main", (uPlayer.name or "Unkown").." ["..(uPlayer.source or "unkown")..";"..(uPlayer.steam or "error").."] Disconnected, saved in "..analizer.finish().."ms")
+                if uPlayer.IsNew then
+                    local query, query2, query_data = GetQueryFromuPlayer(uPlayer, {x=x, y=y, z=z}, true)
+                    oxmysql:executeSync('INSERT INTO users ('..query:sub(1, -2)..') VALUES ('..query2:sub(1, -2)..')', query_data)        
+                else
+                    local query, query_data = GetQueryFromuPlayer(uPlayer, {x=x, y=y, z=z})
+                    oxmysql:executeSync('UPDATE users SET '..query:sub(1, -2)..' WHERE steam = :steam', query_data)
+                end
+                Utility.LogToLogger("Main", (uPlayer.name or "Unkown").." ["..(uPlayer.source or "unkown")..";"..(uPlayer.steam or "error").."] Disconnected, saved in "..analizer.finish().."ms")
+            end
         end
-
     end)
 
     local exitStopped = false
@@ -215,7 +224,6 @@
                         local x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(v.source)))
                         local query, query_data = GetQueryFromuPlayer(v, {x=x, y=y, z=z})
                     
-                        
                         oxmysql:executeSync('UPDATE users SET '..query:sub(1, -2)..' WHERE steam = :steam', query_data)
                         Utility.LogToLogger("Main", v.name.." Manually saved in "..analizer.finish().."ms")
                     end
@@ -388,3 +396,6 @@ function LoadServer()
 end
 
 exports(LoadServer)
+
+--// Advertisement
+SetConvarServerInfo("Framework", "Utility by XenoS.exe#2859")

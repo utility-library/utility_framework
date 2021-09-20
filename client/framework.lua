@@ -155,14 +155,16 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
                     if ammo ~= maxAmmo then
                         ammo = maxAmmo
 
-                        for k,v in pairs(Utility.PlayerData.GetWeapons()) do
+                        for k,v in pairs(Utility.PlayerData.other_info.weapon) do
                             if weapon == GetHashKey(k) then
                                 weaponName = k
                                 break
                             end
                         end
 
-                        TriggerServerEvent("Utility:Weapon:SyncAmmo", Utility.PlayerData.steam, weaponName, maxAmmo)
+                        if weaponName ~= nil then
+                            TriggerServerEvent("Utility:Weapon:SyncAmmo", Utility.PlayerData.steam, weaponName, maxAmmo)
+                        end
                     end
                 end
             else
