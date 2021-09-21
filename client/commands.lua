@@ -240,3 +240,39 @@ TriggerEvent('chat:addSuggestion', '/setmoney', 'Set money of a player', {
         help = "The amount of money to set" 
     },
 })
+TriggerEvent('chat:addSuggestion', '/sendbill', 'Send a bill to a player', {
+    { 
+        name = "id", 
+        help = "The id of the recipient (0 = yourself)" 
+    },
+    { 
+        name = "society", 
+        help = "The society name (example: police)" 
+    },
+    { 
+        name = "reason", 
+        help = "The reason of the bill" 
+    },
+    { 
+        name = "amount", 
+        help = "How muc is the bill" 
+    },
+})
+TriggerEvent('chat:addSuggestion', '/getbills', 'Get all bills of a player', {
+    { 
+        name = "id", 
+        help = "The id of the recipient (0 = yourself)" 
+    }
+})
+TriggerEvent('chat:addSuggestion', '/paybill', 'Pay a bill', {
+    { 
+        name = "id", 
+        help = "The id of the recipient (0 = yourself)" 
+    }
+})
+TriggerEvent('chat:addSuggestion', '/transferveh', 'Transfer a vehicle to another player (YOU NEED TO STAY IN THE VEHICLE)', {
+    { 
+        name = "id", 
+        help = "The id of the recipient (0 = yourself)" 
+    }
+})

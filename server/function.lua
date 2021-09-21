@@ -1,14 +1,20 @@
 -- ServerCallback
     RegisterServerCallback = function(name, _function)
-        RegisterServerEvent("Utility:"..name)
-        AddEventHandler("Utility:"..name, function(...)
-            local _source = source
-            function cb(...)
-                TriggerClientEvent("Utility:"..name.."_l", _source, ...)
-            end
+        RegisterServerEvent("Utility_Callback:"..name)
+        AddEventHandler("Utility_Callback:"..name, function(...)
+            local source = source
+            source = source
 
+            function cb(...)
+                TriggerClientEvent("Utility_Callback:"..name.."_l", source, ...)
+            end
+            
             _function(...)
         end)
+    end
+
+    CreateMenu = function(id, title, content, cb, close)
+        TriggerClientEvent("Utility:OpenMenu", id, title, content, cb, close)
     end
 
 -- Logger
@@ -75,6 +81,8 @@
     end
     
     uPlayerPopulate = function(self)
+        self.__type = "uplayer"
+
         if self.update == nil then
             self.update = function() end
         end
@@ -84,6 +92,7 @@
         if self.other_info.isdeath == nil then self.other_info.isdeath = false end
         if self.other_info.license == nil then self.other_info.license = {} end
         if self.other_info.weapon == nil then self.other_info.weapon = {} end
+        if self.other_info.bills == nil then self.other_info.bills = {} end
     
     
         -- Weight 
@@ -135,13 +144,13 @@
 
                 -- New
                 self.SetMoney = function(type, amount)
-                    self.accounts[type] = amount
+                    self.accounts[type] = tonumber(amount)
                     self.update("accounts", self.accounts)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "accounts", self.accounts)
                 end
     
                 self.RemoveMoney = function(type, amount)
-                    self.accounts[type] = self.accounts[type] - amount
+                    self.accounts[type] = self.accounts[type] - tonumber(amount)
                     self.update("accounts", self.accounts)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "accounts", self.accounts)
                 end
@@ -150,8 +159,8 @@
                     return {count = self.accounts[type], label = GetLabel("accounts", nil, type) or type}
                 end
     
-                self.HaveMoneyQuantity = function(type, quantity)
-                    return (self.accounts[type] >= quantity)
+                self.HaveMoneyQuantity = function(_type, quantity)
+                    return (self.accounts[_type] >= tonumber(quantity))
                 end
             -- Item
     
@@ -502,89 +511,156 @@
                 self.HaveLicense = function(name)
                     return self.other_info.license[name] or false
                 end
+            -- Billing
+                self.GetBills = function()
+                    return self.other_info.bills or {}
+                end
+
+                self.PayBill = function(id)
+                    local bill_info = self.other_info.bills[id]
+
+                    if self.HaveMoneyQuantity("bank", bill_info[3]) then
+                        self.RemoveMoney("bank", bill_info[3])
+                        Utility.SocietyData[bill_info[1]].AddMoney("bank", bill_info[3])
+                        
+                        -- Delete the bill
+                        table.remove(self.other_info.bills, id)
+                        return true
+                    else
+                        return false
+                    end
+                end
+                self.RevokeBill = function(id)
+                    local bill_info = self.other_info.bills[id]
+
+                    if bill_info then
+                        table.remove(self.other_info.bills, id)
+                        return true
+                    else
+                        return false
+                    end
+                end
+
+                self.CreateBill = function(target_source, reason, amount)
+                    local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(target_source)[1]]
     
+                    -- Create the bill for the player
+                    table.insert(uPlayer.other_info.bills, {[1] = self.name, [2] = reason, [3] = tonumber(amount)})
+                end
+
+            -- Vehicles
+                self.BuyVehicle = function(components)
+                    oxmysql:executeSync('INSERT INTO vehicles (owner, plate, data) VALUES (:owner, :plate, :data)', {
+                        owner = self.steam,
+                        plate = components.plate[1],
+                        data  = json.encode(components),
+                    })
+
+                    Utility.OwnedVehicles[components.plate[1]] = self.steam
+                end
+
+                self.TransferVehicleToPlayer = function(plate, target)
+                    local target_steam = GetPlayerIdentifiers(target)[1] or target
+
+                    oxmysql:executeSync('UPDATE vehicles SET owner = :owner WHERE plate = :plate', {
+                        owner = target_steam,
+                        plate = plate,
+                    })
+
+                    Utility.OwnedVehicles[plate] = target_steam
+                end
+
         return self
     end
     
     uSocietyPopulate = function(self)
+        self.__type = "usociety"
+        
         -- Money
-        self.AddMoney = function(type, amount)
-            self.money[type] = self.money[type] + amount
-            --UpdateDatabase(self, "money")
-        end
-        
-        self.RemoveMoney = function(type, amount)
-            self.money[type] = self.money[type] - amount
-            --UpdateDatabase(self, "money")
-        end
-    
-        self.GetMoney = function(type)
-            return {count = self.money[type], label = GetLabel("accounts", nil, type) or type}
-        end
-    
-        self.HaveMoneyQuantity = function(type, quantity)
-            return self.money[type] >= quantity
-        end
-        
-        -- Inventory
-        self.AddItem = function(name, quantity)
-            if self.deposit[name] then
-                self.deposit[name] = self.deposit[name] + quantity
-            else
-                self.deposit[name] = quantity
+            self.AddMoney = function(type, amount)
+                self.money[type] = self.money[type] + tonumber(amount)
+                --UpdateDatabase(self, "money")
             end
-            --UpdateDatabase(self, "deposit")
-        end
-    
-        self.RemoveItem = function(name, quantity)
-            if self.deposit[name] then
-                self.deposit[name] = self.deposit[name] - quantity 
-                
-                if self.deposit[name] <= 0 then 
-                    self.deposit[name] = nil 
+            
+            self.RemoveMoney = function(type, amount)
+                self.money[type] = self.money[type] - tonumber(amount)
+                --UpdateDatabase(self, "money")
+            end
+        
+            self.GetMoney = function(type)
+                return {count = self.money[type], label = GetLabel("accounts", nil, type) or type}
+            end
+        
+            self.HaveMoneyQuantity = function(type, quantity)
+                return self.money[type] >= tonumber(quantity)
+            end
+            
+        -- Inventory
+            self.AddItem = function(name, quantity)
+                if self.deposit[name] then
+                    self.deposit[name] = self.deposit[name] + quantity
+                else
+                    self.deposit[name] = quantity
                 end
-                
                 --UpdateDatabase(self, "deposit")
             end
-        end
-    
-        self.GetItem = function(name)
-            return {count = self.deposit[name], label = GetLabel("items", nil, name) or name}
-        end
-    
-        self.HaveItemQuantity = function(name, quantity)
-            return self.deposit[name] >= quantity
-        end
+        
+            self.RemoveItem = function(name, quantity)
+                if self.deposit[name] then
+                    self.deposit[name] = self.deposit[name] - quantity 
+                    
+                    if self.deposit[name] <= 0 then 
+                        self.deposit[name] = nil 
+                    end
+                    
+                    --UpdateDatabase(self, "deposit")
+                end
+            end
+        
+            self.GetItem = function(name)
+                return {count = self.deposit[name], label = GetLabel("items", nil, name) or name}
+            end
+        
+            self.HaveItemQuantity = function(name, quantity)
+                return self.deposit[name] >= quantity
+            end
     
         -- Weapon
-        self.AddWeapon = function(name, quantity)
-            name = name:lower()
-    
-            if self.weapon[name] then
-                self.weapon[name] = self.weapon[name] + quantity
-            else
-                self.weapon[name] = quantity
-            end
-    
-            --UpdateDatabase(self, "weapon")
-        end
-        self.RemoveWeapon = function(name, quantity)
-            name = name:lower()
-    
-            if self.weapon[name] then
-                self.weapon[name] = self.weapon[name] - quantity 
-                
-                if self.weapon[name] <= 0 then 
-                    self.weapon[name] = nil 
+            self.AddWeapon = function(name, quantity)
+                name = name:lower()
+        
+                if self.weapon[name] then
+                    self.weapon[name] = self.weapon[name] + quantity
+                else
+                    self.weapon[name] = quantity
                 end
-    
+        
                 --UpdateDatabase(self, "weapon")
             end
-        end
-        self.HaveWeapon = function(name)
-            name = name:lower()
-            return (self.weapon[name] ~= nil)
-        end
+            self.RemoveWeapon = function(name, quantity)
+                name = name:lower()
+        
+                if self.weapon[name] then
+                    self.weapon[name] = self.weapon[name] - quantity 
+                    
+                    if self.weapon[name] <= 0 then 
+                        self.weapon[name] = nil 
+                    end
+        
+                    --UpdateDatabase(self, "weapon")
+                end
+            end
+            self.HaveWeapon = function(name)
+                name = name:lower()
+                return (self.weapon[name] ~= nil)
+            end
+        -- Billing
+            self.CreateBill = function(target_source, reason, amount)
+                local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(target_source)[1]]
+
+                -- Create the bill for the player
+                table.insert(uPlayer.other_info.bills, {[1] = self.name, [2] = reason, [3] = tonumber(amount)})
+            end
     
         return self
     end

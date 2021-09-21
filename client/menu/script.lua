@@ -28,8 +28,7 @@ AddEventHandler("Utility:Close", function()
 end)
 
 -- Open the menu from the function in the loader
-RegisterNetEvent("Utility:OpenMenu")
-AddEventHandler("Utility:OpenMenu", function(title, content, cb, close)
+CreateMenu = function(title, content, cb, close)
     menu.menus = {}
     menu.currentSubMenu = 1
 
@@ -41,7 +40,12 @@ AddEventHandler("Utility:OpenMenu", function(title, content, cb, close)
     
     SendNUIMessage({open = true,content = content, closeLabel=Config.Menu.CloseLabel, title = title})
     SetNuiFocus(true, true)
-end)
+end
+
+-- Probably dont works in the server
+RegisterNetEvent("Utility:OpenMenu")
+AddEventHandler("Utility:OpenMenu", CreateMenu)
+
 
 local MenuTemplate = {
     preventDefault = function()
@@ -149,6 +153,13 @@ RegisterNUICallback("button_selection", function(data)
     data.type = "button"
     
     menu.ConvertToNumber(data)
+
+    for k, v in pairs(menu.menus) do
+        print(k)
+    end
+
+    print("Function = "..tostring(menu.menus[menu.currentSubMenu].cb))
+
     menu.menus[menu.currentSubMenu].cb(data, MenuTemplate)
 end)
 

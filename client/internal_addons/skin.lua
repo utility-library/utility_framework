@@ -285,7 +285,6 @@ AddEventHandler("Utility:Loaded", function(uPlayer)
 end)
 
 
-print("dio")
 AddEventHandler('onClientMapStart', function()
     local uPlayer = Utility.PlayerData
 
@@ -296,7 +295,7 @@ AddEventHandler('onClientMapStart', function()
         Citizen.Wait(1)
     end
 
-    print("Spawn, "..json.encode(uPlayer.other_info.coords))
+    --print("Spawn, "..json.encode(uPlayer.other_info.coords))
     local _coords = uPlayer.other_info.coords
 
     exports.spawnmanager:spawnPlayer({

@@ -1,4 +1,6 @@
 SavedTriggerServerEvent = TriggerServerEvent
+SavedAddEventHandler = AddEventHandler
+
 uPlayer = nil
 Utility = {}
 
@@ -118,7 +120,7 @@ Utility = {}
             TriggerEvent("Utility:Close")
         end
 
-    --// Vehicle components
+    --// Vehicle
         GetVehicleComponents = function(vehicleHandle)
             local colorPrimary, colorSecondary = GetVehicleColours(vehicleHandle)
             local pearlescentColor, wheelColor = GetVehicleExtraColours(vehicleHandle)
@@ -244,6 +246,17 @@ Utility = {}
             end
         end
 
+        IsPlateOwnedByPlayer = function(plate)
+            -- TODO
+            local a = promise:new()
+
+            TriggerServerCallbackAsync("Utility:IsPlateOwned", function(owned)
+                a:resolve(owned)
+            end, plate)
+
+            return Citizen.Await(a)
+        end
+        
     --// Addons
         addon = function(name)
             local module = LoadResourceFile("utility_framework", "client/addons/"..name..".lua")
@@ -272,6 +285,7 @@ Utility = {}
             print("Called trigger "..c.." ["..tob64.."]")
             SavedTriggerServerEvent("Utility_External:"..tob64, RandomizedToken, Key, ...) 
         end
+
     --// Notification
         ShowNotification = function(msg)
             SetNotificationTextEntry('STRING')

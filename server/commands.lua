@@ -55,7 +55,7 @@ end
 
 -- Admin
     RegisterCommand("goto", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" and args[1] then
             local player = GetPlayerPed(tonumber(args[1]))
@@ -65,7 +65,7 @@ end
     end)
 
     RegisterCommand("bring", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" and args[1] then
             local player = GetPlayerPed(tonumber(args[1]))
@@ -141,7 +141,7 @@ end
 
 -- Job
     RegisterCommand("setjob", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
             if args[1] == "0" then args[1] = source end
@@ -152,7 +152,7 @@ end
     end)
 
     RegisterCommand("setgrade", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
             if args[1] == "0" then args[1] = source end
@@ -163,7 +163,7 @@ end
     end)
 
     RegisterCommand("setduty", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
             if args[1] == "0" then args[1] = source end
@@ -175,7 +175,7 @@ end
 
 -- Money
     RegisterCommand("givemoney", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
             if args[1] == "0" then args[1] = source end
@@ -186,7 +186,7 @@ end
     end)
 
     RegisterCommand("removemoney", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
             if args[1] == "0" then args[1] = source end
@@ -197,7 +197,7 @@ end
     end)
 
     RegisterCommand("setmoney", function(source, args)
-        local uPlayer =  GetuPlayer(source)
+        local uPlayer = GetuPlayer(source)
         
         if uPlayer.group ~= "user" then
             if args[1] == "0" then args[1] = source end
@@ -205,4 +205,56 @@ end
             local uPlayer = GetuPlayer(tonumber(args[1]))
             uPlayer.SetMoney(args[2], tonumber(args[3]))
         end
+    end)
+
+-- Bill
+    RegisterCommand("sendbill", function(source, args)
+        -- 1 = id
+        -- 2 = society
+        -- 3 = reason (optional)
+        -- 4 = amount
+        if args[1] == "0" then args[1] = source end
+
+        local uSociety = Utility.SocietyData[args[2]]
+        if uSociety then
+            uSociety.CreateBill(args[1], args[3], args[4])
+        end
+    end)
+
+    RegisterCommand("getbills", function(source, args)
+        local _source = source
+        if args[1] == "0" or args[1] == nil then args[1] = source end
+
+        local uPlayer = GetuPlayer(args[1])
+        local bills = uPlayer.GetBills()
+        local content = {}
+
+        for i=1, #bills do
+            table.insert(content, {label = bills[i][2].." ("..bills[i][3].."$)", reason = bills[i][2], id = i})
+        end
+
+        CreateMenu(_source, "<fa-file-invoice> Bills of id "..args[1], content, function(data, menu)
+            menu.sub(data.reason, {
+                {label = "Pay"}
+            }, function(data2, menu2)
+                print("Payed? "..tostring(uPlayer.PayBill(data.id)))
+            end)
+        end)
+    end)
+
+    RegisterCommand("paybill", function(source, args)
+        if args[1] == "0" or args[1] == nil then args[1] = source end
+
+        local uPlayer = GetuPlayer(source)
+
+        uPlayer.PayBill(tonumber(args[1]))
+    end)
+
+-- Vehicle
+    RegisterCommand("transferveh", function(source, args)
+        local uPlayer = GetuPlayer(source)
+        local veh = GetVehiclePedIsIn(GetPlayerPed(source))
+        local plate = GetVehicleNumberPlateText(veh)
+
+        uPlayer.TransferVehicleToPlayer(plate, args[1])
     end)

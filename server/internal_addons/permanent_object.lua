@@ -17,7 +17,7 @@ AddEventHandler("Utility:PermObj:SetEntityPermanent", function(data)
     end
 end)
 
-RegisterServerCallback("Utility:PermObj:GetSavedData", function(source)
+RegisterServerCallback("Utility:PermObj:GetSavedData", function()
     if not PermObj.AlreadyCreated then -- If is the first client that generate the entity
         PermObj.AlreadyCreated = true
         oxmysql:fetchSync('SELECT model, coords FROM objects', {}, function(object)

@@ -10,6 +10,7 @@
         SocietyData = {},
         UsableItem = {},
         Jobs = {},
+        OwnedVehicles = {},
         SocietyAlreadySaved = false,
 
         -- Updated data for the server
@@ -162,6 +163,20 @@
         end
 
         cb(uPlayer)
+    end)
+
+    Citizen.CreateThread(function()
+        oxmysql:fetchSync('SELECT plate, owner FROM vehicles', {}, function(vehicles)
+            if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
+    
+            for i=1, #vehicles do
+                Utility.OwnedVehicles[vehicles[i].plate] = vehicles[i].owner
+            end
+        end)
+    end)
+
+    RegisterServerCallback("Utility:IsPlateOwned", function(plate)
+        cb(Utility.OwnedVehicles[plate] == GetPlayerIdentifiers(source)[1])
     end)
 
 

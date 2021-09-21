@@ -2,29 +2,29 @@
 TriggerServerCallbackAsync = function(name, _function, ...)
     local handlerData = nil
 
-    RegisterNetEvent("Utility:"..name.."_l")
-    handlerData = AddEventHandler("Utility:"..name.."_l", function(...)
+    RegisterNetEvent("Utility_Callback:"..name.."_l")
+    handlerData = AddEventHandler("Utility_Callback:"..name.."_l", function(...)
         _function(...)
 
         RemoveEventHandler(handlerData)
     end)
 
     
-    TriggerServerEvent("Utility:"..name, ...)
+    TriggerServerEvent("Utility_Callback:"..name, ...)
 end
 
 TriggerServerCallbackSync = function(name, _function, ...)
     local p = promise.new()        
     local handlerData = nil
 
-    RegisterNetEvent("Utility:"..name.."_l")
-    handlerData = AddEventHandler("Utility:"..name.."_l", function(...)
+    RegisterNetEvent("Utility_Callback:"..name.."_l")
+    handlerData = AddEventHandler("Utility_Callback:"..name.."_l", function(...)
         _function(...)
         RemoveEventHandler(handlerData)
         p:resolve()
     end)
 
-    TriggerServerEvent("Utility:"..name, ...)
+    TriggerServerEvent("Utility_Callback:"..name, ...)
 
     Citizen.Await(p)
 end
@@ -132,6 +132,10 @@ uPlayerPopulate = function(self)
                 else
                     return self.identity
                 end
+            end
+        -- Billing
+            self.GetBills = function()
+                return self.other_info.bills or {}
             end
 
     return self

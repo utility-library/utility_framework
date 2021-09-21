@@ -1,3 +1,4 @@
+oxmysql = exports["oxmysql"]
 local SavedAddEventHandler = AddEventHandler
 local SavedRegisterServerEvent = RegisterServerEvent
 
@@ -36,18 +37,33 @@ end)
         return Utility.GetuSociety(name)
     end
 
+    local _type = type
+    type = function(var)
+        if _type(var) == "table" then
+            if var.__type ~= nil then
+                return var.__type
+            end
+        else
+            return _type(var)
+        end
+    end
+
 --// Functions
     -- ServerCallback
-        RegisterServerCallback = function(name, _function)
+        RegisterServerCallback = function(name, _function, autoprepare)
             SavedRegisterServerEvent("Utility_Callback:"..name)
             SavedAddEventHandler("Utility_Callback:"..name, function(...)
-                local _source = source
+                local source = source
+                source = source
 
                 function cb(...)
-                    TriggerClientEvent("Utility_Callback:"..name.."_l", _source, ...)
+                    TriggerClientEvent("Utility_Callback:"..name.."_l", source, ...)
                 end
 
-                _function(_source, ...)
+                if autoprepare then
+                    uPlayer = GetuPlayer(source)
+                end
+                _function(...)
             end)
         end
     -- Item
@@ -108,6 +124,12 @@ end)
             return Utility.GetPlayersWithJob(jobName)
         end
 
+    -- Menu
+        -- Probably dont works in the server
+        CreateMenu = function(id, title, content, cb, close)
+            TriggerClientEvent("Utility:OpenMenu", id, title, content, cb, close)
+        end
+
 --// Addons
     addon = function(name)
         local module = LoadResourceFile("utility_framework", "server/addons/"..name..".lua")
@@ -127,7 +149,7 @@ end)
         SavedRegisterServerEvent(name)
     end
 
-    AddEventHandler = function(name, cb)
+    AddEventHandler = function(name, cb, autoprepare)
         if registered[name] then
             local encryptedName = encrypting.Utf8ToB64(name)
             Utility.LogToLogger("TBP", 'Encrypting trigger "'..name..'" => "'..encryptedName..'"')
@@ -148,6 +170,9 @@ end)
                 
                 if not BlacklistedToken[Token] then
                     if decoded == tostring(Utility.Token) then
+                        if autoprepare then
+                            uPlayer = GetuPlayer(source)
+                        end
                         cb(...)
                         BlacklistedToken[Token] = true
                     else
