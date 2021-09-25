@@ -7,12 +7,12 @@ AddEventHandler("Utility:PermObj:SetEntityPermanent", function(data)
     if data.permanent then
         oxmysql:executeSync('INSERT INTO objects (model, coords) VALUES (:model, :coords)', {
             model = data.model,
-            coords = json.encode({x = data.x, y = data.y, z = data.z})
+            coords = json.encode({[1] = tonumber(data.x), [2] = tonumber(data.y), [3] = tonumber(data.z)})
         })
     else
         oxmysql:executeSync('DELETE FROM objects WHERE model = :model AND coords = :coords', {
             model = data.model,
-            coords = json.encode({x = data.x, y = data.y, z = data.z})
+            coords = json.encode({[1] = tonumber(data.x), [2] = tonumber(data.y), [3] = tonumber(data.z)})
         })
     end
 end)

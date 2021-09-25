@@ -59,6 +59,39 @@
             end)
         end
 
+        local waitingDatabase = false
+        oxmysql:fetch('SELECT name FROM users LIMIT 1', {}, function(users)
+            if users == nil then
+                if Config.Database.AutoTurnOnXampp then
+                    waitingDatabase = true
+
+                    -- Auto Start MySQL check
+                    local lines, changed = "", false
+                    for line in io.lines("C:\\xampp\\xampp-control.ini") do 
+                        if line:find("MySQL=0") then
+                            changed = true
+                            line:gsub("MySQL=0", "MySQL=1")
+                        end
+    
+                        lines = lines..line.."\n"
+                    end
+                    
+                    if changed then
+                        local x = io.open("C:\\xampp\\xampp-control.ini", "w")
+                        x:write(lines)
+                        x:close()
+                    end
+                    
+                    os.execute("start C:\\xampp\\xampp-control.exe") 
+                end
+            end    
+        end)
+
+        Citizen.Wait(100)
+        if waitingDatabase then
+            Citizen.Wait(2000)
+        end
+
         -- Real load of players and companies
         analizer.start()
         local playercount = nil
@@ -66,10 +99,18 @@
 
         -- Each player is taken from the users table and is pre-loaded with all the respective functions to be used in the future 
         oxmysql:fetchSync('SELECT name, accounts, inventory, jobs, identity, other_info, steam FROM users', {}, function(users)
-            if users == nil then error("Unable to connect with the table `users`, try to check the MySQL status!") return end
+            if users == nil then 
+                error("Unable to connect with the table `users`, try to check the MySQL status!") 
+                return 
+            end
+
             playercount = #users
 
             for i=1, #users do
+                if users[i].steam == nil then
+                    return
+                end
+                
                 -- function.lua:41
                 users[i] = ConvertJsonToTable(users[i], 1)
                 -- function.lua:77
@@ -80,6 +121,7 @@
         -- Each society is taken from the society table and is pre-loaded with all the respective functions to be used in the future (like uPlayer)
         oxmysql:fetchSync('SELECT name, money, deposit, weapon FROM society', {}, function(society)
             if society == nil then error("Unable to connect with the table `society`, try to check the MySQL status!") return end
+
 
             societycount = #society
             for i=1, #society do
@@ -102,6 +144,10 @@
         print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(societycount, "society"))
         print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["StartedIn"]):format(tostring(executionTime)))
 
+        if waitingDatabase then
+            print("^3Warning: The framework noticed that xampp was not open and therefore opened it automatically^0")
+        end
+
         Utility.LogToLogger("Startup", "Loaded "..playercount.." player and "..societycount.." society in "..executionTime.."ms")
     end)
 
@@ -123,6 +169,8 @@
     -- Prepares the data to be sent to the client framework, the client framework will receive only the data relevant to its id. 
     -- Note: the data that will be sent can only be read, but not overwritten.
     RegisterServerCallback("Utility:GetPlayerData", function(name)
+        local source = source
+
         Utility.LogToLogger("Main", "Loaded the client framework for the resource ["..name.."] [ID:"..source.."]")
         local steam = GetPlayerIdentifiers(source)[1]
         local uPlayer = Utility.PlayersData[steam]
@@ -165,7 +213,7 @@
         cb(uPlayer)
     end)
 
-    Citizen.CreateThread(function()
+    --[[Citizen.CreateThread(function()
         oxmysql:fetchSync('SELECT plate, owner FROM vehicles', {}, function(vehicles)
             if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
     
@@ -173,7 +221,7 @@
                 Utility.OwnedVehicles[vehicles[i].plate] = vehicles[i].owner
             end
         end)
-    end)
+    end)]]
 
     RegisterServerCallback("Utility:IsPlateOwned", function(plate)
         cb(Utility.OwnedVehicles[plate] == GetPlayerIdentifiers(source)[1])
@@ -293,14 +341,6 @@
         end
     end, true)
 
---// Ammo sync
-    RegisterServerEvent("Utility:Weapon:SyncAmmo")
-    AddEventHandler("Utility:Weapon:SyncAmmo", function(steam, weapon, ammo)
-        local weapon_data = Utility.PlayersData[steam].other_info.weapon
-
-        weapon_data[weapon] = ammo
-    end)
-
 --// Triggers
     -- Weapon
     RegisterServerEvent("Utility:Weapon")
@@ -318,99 +358,104 @@
         end
     end)
 
+    -- Ammo sync
+    RegisterServerEvent("Utility:Weapon:SyncAmmo")
+    AddEventHandler("Utility:Weapon:SyncAmmo", function(steam, weapon, ammo)
+        local weapon_data = Utility.PlayersData[steam].other_info.weapon
+
+        weapon_data[weapon] = ammo
+    end)
+
+    RegisterServerEvent("Utility_Usable:SetItemUsable")
+    AddEventHandler("Utility_Usable:SetItemUsable", function(name)
+        Utility.UsableItem[name] = true
+    end)
+
+    RegisterServerEvent("Utility:SetDeath")
+    AddEventHandler("Utility:SetDeath", function(steam, death, info)
+        if Config.Actived.No_Rp.KillDeath then
+            if info ~= nil and info.killer ~= 0 then
+                local killerSteam = GetPlayerIdentifiers(info.killer)[1]
+                if Utility.PlayersData[steam].other_info.kill == nil then Utility.PlayersData[steam].other_info.kill = 0 end
 
 
+                Utility.PlayersData[killerSteam].other_info.kill = Utility.PlayersData[killerSteam].other_info.kill + 1
+            end
 
-
-RegisterServerEvent("Utility_Usable:SetItemUsable")
-AddEventHandler("Utility_Usable:SetItemUsable", function(name)
-    Utility.UsableItem[name] = true
-end)
-
-
-RegisterServerEvent("Utility:SetDeath")
-AddEventHandler("Utility:SetDeath", function(steam, death, info)
-    if Config.Actived.No_Rp.KillDeath then
-        if info ~= nil and info.killer ~= 0 then
-            local killerSteam = GetPlayerIdentifiers(info.killer)[1]
-            if Utility.PlayersData[steam].other_info.kill == nil then Utility.PlayersData[steam].other_info.kill = 0 end
-
-
-            Utility.PlayersData[killerSteam].other_info.kill = Utility.PlayersData[killerSteam].other_info.kill + 1
+            if Utility.PlayersData[steam].other_info.death == nil then Utility.PlayersData[steam].other_info.death = 0 end
+            Utility.PlayersData[steam].other_info.death = Utility.PlayersData[steam].other_info.death + 1
         end
-
-        if Utility.PlayersData[steam].other_info.death == nil then Utility.PlayersData[steam].other_info.death = 0 end
-        Utility.PlayersData[steam].other_info.death = Utility.PlayersData[steam].other_info.death + 1
-    end
-    
-    Utility.PlayersData[steam].other_info.isdeath = death
-end)
-
-RegisterServerCallback("Utility:GetTriggerKey", function()
-    cb(Utility.Token)
-end)
-
-if Config.Actived.Salaries then
-    Citizen.CreateThread(function()
-        local Wait = nil
-        local WaitMultiplier = 0
         
-        if Config.Jobs.Salaries.Interval:find("ms") then
-            Wait = tonumber(Config.Jobs.Salaries.Interval:gsub("ms", ""))
-            WaitMultiplier = 0
-        elseif Config.Jobs.Salaries.Interval:find("s") then
-            Wait = tonumber(Config.Jobs.Salaries.Interval:gsub("s", ""))
-            WaitMultiplier = 1000
-        elseif Config.Jobs.Salaries.Interval:find("m") then
-            Wait = tonumber((Config.Jobs.Salaries.Interval:gsub("m", "")))
-            WaitMultiplier = 60000
-        end
+        Utility.PlayersData[steam].other_info.isdeath = death
+    end)
 
-        while true do
-            Citizen.Wait(1000)
-            for k,v in pairs(Utility.PlayersData) do
-                if v.source ~= nil and GetPlayerPing(v.source) > 0 then
-                    for i=1, #v.jobs do
-                        if Config.Jobs.Salaries[i][v.jobs[i].name] then
-                            local moneyToGive = Config.Jobs.Salaries[i][v.jobs[i].name][v.jobs[i].grade]
+    RegisterServerCallback("Utility:GetTriggerKey", function()
+        cb(Utility.Token)
+    end)
 
-                            v.accounts["bank"] = v.accounts["bank"] + (moneyToGive or 0)
+--// Other
+    if Config.Actived.Salaries then
+        Citizen.CreateThread(function()
+            local Wait = nil
+            local WaitMultiplier = 0
+            
+            if Config.Jobs.Salaries.Interval:find("ms") then
+                Wait = tonumber(Config.Jobs.Salaries.Interval:gsub("ms", ""))
+                WaitMultiplier = 0
+            elseif Config.Jobs.Salaries.Interval:find("s") then
+                Wait = tonumber(Config.Jobs.Salaries.Interval:gsub("s", ""))
+                WaitMultiplier = 1000
+            elseif Config.Jobs.Salaries.Interval:find("m") then
+                Wait = tonumber((Config.Jobs.Salaries.Interval:gsub("m", "")))
+                WaitMultiplier = 60000
+            end
+
+            while true do
+                Citizen.Wait(1000)
+                for k,v in pairs(Utility.PlayersData) do
+                    if v.source ~= nil and GetPlayerPing(v.source) > 0 then
+                        for i=1, #v.jobs do
+                            if Config.Jobs.Salaries[i][v.jobs[i].name] then
+                                local moneyToGive = Config.Jobs.Salaries[i][v.jobs[i].name][v.jobs[i].grade]
+
+                                v.accounts["bank"] = v.accounts["bank"] + (moneyToGive or 0)
+                            end
                         end
                     end
                 end
-            end
 
-            Utility.LogToLogger("Main", "Given salary to all players, next salary between "..Wait * WaitMultiplier.."ms")
-            Citizen.Wait(Wait * WaitMultiplier)
+                Utility.LogToLogger("Main", "Given salary to all players, next salary between "..Wait * WaitMultiplier.."ms")
+                Citizen.Wait(Wait * WaitMultiplier)
+            end
+        end)
+    end
+
+    -- Explosion
+    if Config.Addons.DisableExplosion then
+        AddEventHandler('explosionEvent', function(sender, ev)
+            Utility.LogToLogger("Explosion", "Cancelled explosion created by ["..sender.."] "..json.encode(ev).."")
+            CancelEvent()
+        end)
+    end
+
+    -- Steam Check
+    AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
+        local identifiers = GetPlayerIdentifiers(source)
+
+        if not identifiers[1]:find("steam") then
+            Utility.LogToLogger("Main", "The player "..name.." dont have steam opened")
+
+            CancelEvent()
+            setKickReason("Utility Framework: Unable to find SteamId, please relaunch FiveM with steam open or restart FiveM & Steam if steam is already open")
+        else
+            if Config.Maintenance then
+                if not Config.Group[identifiers[1]] then
+                    CancelEvent()
+                    setKickReason("Utility Framework: "..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["Maintenance"]))        
+                end
+            end
         end
     end)
-end
 
--- Explosion
-if Config.Addons.DisableExplosion then
-    AddEventHandler('explosionEvent', function(sender, ev)
-        Utility.LogToLogger("Explosion", "Cancelled explosion created by ["..sender.."] "..json.encode(ev).."")
-        CancelEvent()
-    end)
-end
-
--- Steam Check
-AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
-    local identifiers = GetPlayerIdentifiers(source)
-
-    if not identifiers[1]:find("steam") then
-        Utility.LogToLogger("Main", "The player "..name.." dont have steam opened")
-
-        CancelEvent()
-        setKickReason("Utility Framework: Unable to find SteamId, please relaunch FiveM with steam open or restart FiveM & Steam if steam is already open")
-    end
-end)
-
-function LoadServer()
-    return LoadResourceFile("utility_framework", "server/loader.lua")
-end
-
-exports(LoadServer)
-
---// Advertisement
-SetConvarServerInfo("Framework", "Utility by XenoS.exe#2859")
+    -- Advertisement
+    SetConvarServerInfo("Framework", "Utility by XenoS.exe#2859")

@@ -282,6 +282,7 @@ AddEventHandler("Utility:Loaded", function(uPlayer)
     --FreezeEntityPosition(PlayerPedId(), true)
 
     -- Spawn override
+    exports.spawnmanager:setAutoSpawn(false)
 end)
 
 
@@ -299,13 +300,17 @@ AddEventHandler('onClientMapStart', function()
     local _coords = uPlayer.other_info.coords
 
     exports.spawnmanager:spawnPlayer({
-        x = _coords.x,
-        y = _coords.y,
-        z = _coords.z,
+        x = _coords[1],
+        y = _coords[2],
+        z = _coords[3],
         heading = 0.0,
         model = `mp_m_freemode_01`, -- dont know if works
         skipFade = false
-    }, function()
+    }, function() end)
+
+    -- is more stable than the callback (idk why but i test with a server of my friend and the callback dont works)
+    AddEventHandler("playerSpawned", function()
+        print("PLAYER SPAWNED")
         LoadMpPlayer((uPlayer.identity.sex:lower() == "f"), function()
             local player = PlayerPedId()
             ApplySkin(Character, true)
@@ -320,8 +325,12 @@ AddEventHandler('onClientMapStart', function()
     
                 SetCurrentPedWeapon(player, `weapon_unarmed`, true)
             end
+
+            if uPlayer.IsDeath() then
+                SetEntityHealth(PlayerPedId(), 0)
+            end
         end)
-    end)
+    end) 
 end)
 
 

@@ -88,7 +88,11 @@
         end
 
         self.group = GetGroup(self.steam)
-    
+
+        if self.group ~= "user" then
+            ExecuteCommand("add_principal identifier.steam:"..self.steam.." group."..self.group)
+        end
+
         if self.other_info.isdeath == nil then self.other_info.isdeath = false end
         if self.other_info.license == nil then self.other_info.license = {} end
         if self.other_info.weapon == nil then self.other_info.weapon = {} end
@@ -541,13 +545,6 @@
                     end
                 end
 
-                self.CreateBill = function(target_source, reason, amount)
-                    local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(target_source)[1]]
-    
-                    -- Create the bill for the player
-                    table.insert(uPlayer.other_info.bills, {[1] = self.name, [2] = reason, [3] = tonumber(amount)})
-                end
-
             -- Vehicles
                 self.BuyVehicle = function(components)
                     oxmysql:executeSync('INSERT INTO vehicles (owner, plate, data) VALUES (:owner, :plate, :data)', {
@@ -674,7 +671,7 @@
             accounts  = {},
             jobs      = {},
             identity  = {},
-            other_info = { coords = Config.Start.Position }
+            other_info = { coords = {[1] = tonumber(Config.Start.Position.x), [2] = tonumber(Config.Start.Position.y), [3] = tonumber(Config.Start.Position.z)} }
         }
 
         -- Accounts (cash, bank, black)
@@ -843,13 +840,28 @@
         if Config.Actived.Other_info.Position then
             local x2, y2, z2 = string.format("%.2f", coords.x), string.format("%.2f", coords.y), string.format("%.2f", coords.z)
             
-            uPlayer.other_info.coords = {}
-            uPlayer.other_info.coords.x, uPlayer.other_info.coords.y, uPlayer.other_info.coords.z = x2, y2, z2
+            uPlayer.other_info.coords = {
+                [1] = tonumber(x2),
+                [2] = tonumber(y2),
+                [3] = tonumber(z2)
+            }
         end
                 
         for k, v in pairs(Config.Actived.Other_info) do
             if v then
-                query_data.other_info = json.encode(uPlayer.other_info)
+                local other_info = json.decode(json.encode(uPlayer.other_info))
+
+                for k,v in pairs(other_info) do
+                    if type(v) == "table" then
+                        if next(v) == nil then
+                            other_info[k] = nil
+                        end
+                    elseif k == "isdeath" and v == false then
+                        other_info[k] = nil
+                    end
+                end
+
+                query_data.other_info = json.encode(other_info)
 
                 if IsInsert then
                     query = query.."other_info,"

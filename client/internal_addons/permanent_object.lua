@@ -5,7 +5,7 @@ if Config.Addons.PermanentObject then
             for i=1, #data do
                 data[i].coords = json.decode(data[i].coords)
 
-                local obj = CreateObject(data[i].model, vector3(tonumber(data[i].coords.x), tonumber(data[i].coords.y), tonumber(data[i].coords.z)), true)  
+                local obj = CreateObject(data[i].model, vector3(tonumber(data[i].coords[1]), tonumber(data[i].coords[2]), tonumber(data[i].coords[3])), true)  
                 
                 SetEntityAsMissionEntity(obj, true, true)
                 NetworkRegisterEntityAsNetworked(obj)

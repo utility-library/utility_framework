@@ -78,6 +78,24 @@ RegisterCommand("id", function(source)
     print(GetPlayerServerId(PlayerId()))
 end)
 
+RegisterCommand("coords", function(source)
+    print(GetEntityCoords(PlayerPedId()))
+end)
+
+RegisterCommand("rotation", function(source)
+    print(GetEntityRotation(PlayerPedId()))
+end)
+
+RegisterCommand("die", function(source, args)
+    SetEntityHealth(PlayerPedId(), 0)
+end)
+
+RegisterCommand("isdeath", function(source, args)
+    local uPlayer = Utility.PlayerData
+
+    print(uPlayer.IsDeath())
+end)
+
 
 -- COMMANDS SUGGESTIONS
 TriggerEvent('chat:addSuggestion', '/giveweapon', 'Give a weapon from a player', {

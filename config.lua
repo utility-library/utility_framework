@@ -2,7 +2,8 @@ Config = {}
 
 --// Basic
     Config.DefaultLanguage = "en" -- List of languages (https://developers.google.com/admin-sdk/directory/v1/languages)
-
+    Config.Maintenance = false    -- Allow only player without the user group to join
+    
     Config.Logs = {
         Connection = {
             NewUser = true, -- Print "[NEW] User <PLAYER_NAME> connected!" if the player is new
@@ -17,6 +18,7 @@ Config = {}
     }
 
     Config.Database = {
+        AutoTurnOnXampp = true,     -- If you have xampp the framework can automatically turn it on if is offline (with mysql service started)
         CheckIfExistOnStart = false,
         SaveNameInDb = true,
         IfNewInstantSave = true     -- [TRUE]  When a new player connects it is immediately inserted in the table in the database (it makes 1 more query) 
@@ -318,5 +320,6 @@ Config = {}
             ['StartedIn']        = "Started in: %s ms",
             ['ConnectedUser']    = "User %s connected!",
             ['RecievedSalary']   = "You have recieved %d$ from the salary",
+            ['Maintenance']      = "The server is currently under maintenance 👨‍🔧"
         }
     }

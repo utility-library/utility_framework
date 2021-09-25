@@ -15,9 +15,10 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
 --// Basic PlayerData
     Citizen.CreateThread(function()
         --DoScreenFadeOut(300)
+        Citizen.Wait(100)
 
         -- Get data from the server
-        TriggerServerCallbackAsync("Utility:GetPlayerData", function(PlayerData)
+        TriggerServerCallbackSync("Utility:GetPlayerData", function(PlayerData)
             if Config.Actived.Pvp then
                 SetCanAttackFriendly(player, true, false)
                 NetworkSetFriendlyFireOption(true)
@@ -65,10 +66,10 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
         if name == "CEventNetworkEntityDamage" then
             data[1] = tonumber(data[1])  
             data[2] = tonumber(data[2])  
-            data[6] = tonumber(data[6])  
 
-            if data[1] ~= nil and data[6] ~= nil and data[2] ~= nil then
-                if data[1] == PlayerPedId() and data[6] == 1 then -- If is death
+            if data[1] ~= nil and data[2] ~= nil then
+                print("Damage "..json.encode(data))
+                if data[1] == PlayerPedId() and GetEntityHealth(PlayerPedId()) == 0 then -- If is death
                     if data[2] == -1 then
                         TriggerServerEvent("Utility:SetDeath", Utility.PlayerData.steam, true)
                     else

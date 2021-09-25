@@ -137,6 +137,11 @@ uPlayerPopulate = function(self)
             self.GetBills = function()
                 return self.other_info.bills or {}
             end
+        
+        -- IsDeath
+            self.IsDeath = function()
+                return self.other_info.isdeath
+            end
 
     return self
 end
