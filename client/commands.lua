@@ -74,6 +74,16 @@ RegisterCommand("tp", function(source, args)
     end
 end)
 
+RegisterCommand("clearentattached", function(source)
+    local obj = GetGamePool("CObject")
+
+    for i=1, #obj do
+        if IsEntityAttachedToEntity(obj[i], player) then
+            DeleteEntity(obj[i])
+        end
+    end
+end)
+
 RegisterCommand("id", function(source)
     print(GetPlayerServerId(PlayerId()))
 end)

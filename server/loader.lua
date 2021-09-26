@@ -67,25 +67,47 @@ end)
             end)
         end
     -- Item
-        RegisterItemUsable = function(name, cb)
-            TriggerEvent("Utility_Usable:SetItemUsable", name)
+        RegisterItemUsable = function(name, id, cb)
 
-            SavedRegisterServerEvent("Utility_Usable:"..name)
-            SavedAddEventHandler("Utility_Usable:"..name, function(_uPlayer)
-                source = _uPlayer.source
-                uPlayer = _uPlayer
-                
-                if _uPlayer.HaveItemQuantity(name, 1) then
-                    cb(true)
-                else
-                    cb(false)
-                end
+            if type(id) == "string" or type(id) == "number" then
+                TriggerEvent("Utility_Usable:SetItemUsable", name, id)
+                SavedRegisterServerEvent("Utility_Usable:"..name..":"..id)
+                SavedAddEventHandler("Utility_Usable:"..name..":"..id, function(_uPlayer)
+                    source = _uPlayer.source
+                    uPlayer = _uPlayer
+                    
+                    if _uPlayer.HaveItemQuantity(name, 1) then
+                        cb(true)
+                    else
+                        cb(false)
+                    end
+    
+                    -- Delete the source and the uPlayer after 200ms, prevent random memory usage
+                    Citizen.Wait(200)
+                    source  = nil
+                    uPlayer = nil
+                end)
+            else
+                cb = id
 
-                -- Delete the source and the uPlayer after 200ms, prevent random memory usage
-                Citizen.Wait(200)
-                source  = nil
-                uPlayer = nil
-            end)
+                TriggerEvent("Utility_Usable:SetItemUsable", name)
+                SavedRegisterServerEvent("Utility_Usable:"..name)
+                SavedAddEventHandler("Utility_Usable:"..name, function(_uPlayer)
+                    source = _uPlayer.source
+                    uPlayer = _uPlayer
+                    
+                    if _uPlayer.HaveItemQuantity(name, 1) then
+                        cb(true)
+                    else
+                        cb(false)
+                    end
+    
+                    -- Delete the source and the uPlayer after 200ms, prevent random memory usage
+                    Citizen.Wait(200)
+                    source  = nil
+                    uPlayer = nil
+                end)
+            end
         end
     -- Label
         GetLabel = function(header, language, key)

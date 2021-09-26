@@ -143,6 +143,15 @@ uPlayerPopulate = function(self)
                 return self.other_info.isdeath
             end
 
+        -- Other info integration
+            self.Get = function(id)
+                if id == nil then
+                    return self.other_info.scripts
+                else
+                    return self.other_info.scripts[id] or nil
+                end
+            end
+
     return self
 end
 

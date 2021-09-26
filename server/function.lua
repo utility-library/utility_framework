@@ -20,21 +20,21 @@
 -- Logger
     local logId = math.random(0, 999)
     -- On framework start if the log type is file, create the log file with reading instructions
-    if Config.AdvancedLog == "file" or Config.AdvancedLog == "both" then
+    if Config.Logs.AdvancedInfo == "file" or Config.Logs.AdvancedInfo == "both" then
         local log = io.open(GetResourcePath("utility_framework").."/logs/Utility_log_"..os.date("%y-%m-%d")..";"..logId..".txt", "a")
         log:write("[    Time] [CPUsec] [  Position] | [Message]\n--------------------------------------------\n")
         log:close()
     end
 
     LogToLogger = function(type, msg)
-        if Config.AdvancedLog ~= "disabled" then
-            if Config.AdvancedLog == "console" then
+        if Config.Logs.AdvancedInfo ~= "disabled" then
+            if Config.Logs.AdvancedInfo == "console" then
                 print(string.format("[%s] [%d] [%s] | %s", os.date("%X"), math.floor(os.clock()), type, msg))
-            elseif Config.AdvancedLog == "file" then
+            elseif Config.Logs.AdvancedInfo == "file" then
                 local log = io.open(GetResourcePath("utility_framework").."/logs/Utility_log_"..os.date("%y-%m-%d")..";"..logId..".txt", "a")
                 log:write(string.format("[%8s] [%6d] [%10s] | %s", os.date("%X"), math.floor(os.clock()), type, msg).."\n")
                 log:close()
-            elseif Config.AdvancedLog == "both" then
+            elseif Config.Logs.AdvancedInfo == "both" then
                 print(string.format("[%s] [%d] [%s] | %s", os.date("%X"), math.floor(os.clock()), type, msg))
                 local log = io.open(GetResourcePath("utility_framework").."/logs/Utility_log_"..os.date("%y-%m-%d")..";"..logId..".txt", "a")
                 log:write(string.format("[%8s] [%6d] [%10s] | %s", os.date("%X"), math.floor(os.clock()), type, msg).."\n")
@@ -97,6 +97,7 @@
         if self.other_info.license == nil then self.other_info.license = {} end
         if self.other_info.weapon == nil then self.other_info.weapon = {} end
         if self.other_info.bills == nil then self.other_info.bills = {} end
+        if self.other_info.scripts == nil then self.other_info.scripts = {} end
     
     
         -- Weight 
@@ -331,9 +332,15 @@
                 end
 
 
-                self.UseItem = function(name)
-                    if Utility.UsableItem[name] then
-                        TriggerEvent("Utility_Usable:"..name, self)
+                self.UseItem = function(name, id)
+                    if id then
+                        if Utility.UsableItem[name][id] then
+                            TriggerEvent("Utility_Usable:"..name..":"..id, self)
+                        end
+                    else
+                        if Utility.UsableItem[name] then
+                            TriggerEvent("Utility_Usable:"..name, self)
+                        end
                     end
                 end
                 self.IsItemUsable = function(name)
@@ -565,6 +572,29 @@
                     })
 
                     Utility.OwnedVehicles[plate] = target_steam
+                end
+            -- Other info integration
+                self.Set = function(id, value)
+                    self.other_info.scripts[id] = value
+                    TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
+                end
+
+                self.Get = function(id)
+                    if id == nil then
+                        return self.other_info.scripts
+                    else
+                        return self.other_info.scripts[id] or nil
+                    end
+                end
+
+                self.Del = function(id)
+                    self.other_info.scripts[id] = nil
+                    TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
+                end
+
+            -- Config
+                self.Config = function(field)
+                    return Config[field]
                 end
 
         return self

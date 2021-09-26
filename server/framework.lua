@@ -367,8 +367,12 @@
     end)
 
     RegisterServerEvent("Utility_Usable:SetItemUsable")
-    AddEventHandler("Utility_Usable:SetItemUsable", function(name)
-        Utility.UsableItem[name] = true
+    AddEventHandler("Utility_Usable:SetItemUsable", function(name, id)
+        if id then
+            Utility.UsableItem[name][id] = true
+        else
+            Utility.UsableItem[name] = true
+        end
     end)
 
     RegisterServerEvent("Utility:SetDeath")

@@ -292,3 +292,71 @@ Utility = {}
             AddTextComponentSubstringPlayerName(msg)
             DrawNotification(false, true)
         end
+    --// Closest
+        GetClosestVehicle = function(whitelist, radius)
+            if whitelist and type(whitelist) == "string" then whitelist = GetHashKey(whitelist) end
+            local coords = GetEntityCoords(PlayerPedId())
+
+
+            local vehicleList = GetGamePool("CVehicle")
+            local closestVeh = {
+                handle = nil,
+                distance = 999,
+            }
+            
+            for i=1, #vehicleList do
+                if whitelist then
+                    if GetHashKey(vehicleList[i]) == whitelist then
+                        local currentDistance = #(GetEntityCoords(vehicleList[i]) - coords)
+
+                        if currentDistance <= radius and closestVeh.distance < currentDistance then
+                            closestVeh.handle   = vehicleList[i]
+                            closestVeh.distance = currentDistance
+                        end
+                    end
+                else
+                    local currentDistance = #(GetEntityCoords(vehicleList[i]) - coords)
+
+                    if currentDistance <= radius and closestVeh.distance < currentDistance then
+                        closestVeh.handle   = vehicleList[i]
+                        closestVeh.distance = currentDistance
+                    end
+                end
+            end
+
+            return closestVeh.handle, vehicleList
+        end
+
+        GetClosestPed = function(whitelist, radius)
+            if whitelist and type(whitelist) == "string" then whitelist = GetHashKey(whitelist) end
+            local coords = GetEntityCoords(PlayerPedId())
+
+
+            local pedList = GetGamePool("CPed")
+            local closestPed = {
+                handle = nil,
+                distance = 999,
+            }
+            
+            for i=1, #pedList do
+                if whitelist then
+                    if GetHashKey(pedList[i]) == whitelist then
+                        local currentDistance = #(GetEntityCoords(pedList[i]) - coords)
+
+                        if currentDistance <= radius and closestPed.distance < currentDistance then
+                            closestPed.handle   = pedList[i]
+                            closestPed.distance = currentDistance
+                        end
+                    end
+                else
+                    local currentDistance = #(GetEntityCoords(pedList[i]) - coords)
+
+                    if currentDistance <= radius and closestPed.distance < currentDistance then
+                        closestPed.handle   = pedList[i]
+                        closestPed.distance = currentDistance
+                    end
+                end
+            end
+
+            return closestPed.handle, pedList
+        end
