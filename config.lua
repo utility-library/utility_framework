@@ -38,12 +38,6 @@ Config = {}
 --// Other
     Config.Group = {
         ["steam:11000011525c3cc"] = "admin",
-        -- To remove
-        ["steam:11000011cd5a037"] = "admin",
-        ["steam:11000010b282d87"] = "admin",
-        ["steam:110000139cd9389"] = "admin",
-        ["steam:11000013f7e15db"] = "admin",
-        ["steam:11000011cda629a"] = "admin",
     }
 
     Config.Addons = {
