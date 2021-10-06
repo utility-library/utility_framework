@@ -329,6 +329,10 @@ AddEventHandler('onClientMapStart', function()
             if uPlayer.IsDeath() then
                 SetEntityHealth(PlayerPedId(), 0)
             end
+
+            if uPlayer.other_info.armour ~= nil then
+                SetPedArmour(PlayerPedId(), tonumber(uPlayer.other_info.armour))
+            end
         end)
     end) 
 end)

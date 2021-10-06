@@ -71,7 +71,10 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
                 print("Damage "..json.encode(data))
                 if data[1] == PlayerPedId() and GetEntityHealth(PlayerPedId()) == 0 then -- If is death
                     if data[2] == -1 then
-                        TriggerServerEvent("Utility:SetDeath", Utility.PlayerData.steam, true)
+                        if Config.Actived.Other_info.Death then
+                            TriggerEvent("Utility:OnDeath", {killer = -1, cause = GetPedCauseOfDeath(PlayerPedId())})
+                            TriggerServerEvent("Utility:SetDeath", Utility.PlayerData.steam, true)
+                        end
                     else
                         if Config.Actived.No_Rp.KillDeath then
                             local killerPlayerIndex = NetworkGetPlayerIndexFromPed(data[2])
@@ -88,27 +91,16 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
                                 })
                             end
                         else
-                            TriggerServerEvent("Utility:SetDeath", Utility.PlayerData.steam, true)
+                            if Config.Actived.Other_info.Death then
+                                TriggerEvent("Utility:OnDeath", {killer = NetworkGetPlayerIndexFromPed(data[2]), cause = GetPedCauseOfDeath(PlayerPedId())})
+                                TriggerServerEvent("Utility:SetDeath", Utility.PlayerData.steam, true)
+                            end
                         end
                     end
                 end
             end
         end
     end)
-
-    --[[if Config.Actived.Other_info.Death then
-        AddEventHandler("Utility:PlayerLoaded", function()
-            while true do
-                local source = GetPlayerServerId(PlayerId())
-
-                if IsEntityDead(PlayerPedId()) and not Utility.PlayerData.death then
-                    TriggerEvent("Utility:OnDeath", GetPedSourceOfDeath(PlayerPedId()))
-                    TriggerServerEvent("Utility:SetDeath", Utility.PlayerData.steam, true)
-                end
-                Citizen.Wait(1000)
-            end
-        end)
-    end]]
 
     -- Salaries
     if Config.Actived.Salaries then
@@ -120,14 +112,16 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
         end)
     end
 
-    if Config.Actived.NoWeaponDrop then
+    if Config.Actived.DisableVehicleRewards then
         Citizen.CreateThread(function()
             while true do
                 DisablePlayerVehicleRewards(PlayerId())
                 Citizen.Wait(5)
             end
         end)
-        
+    end
+
+    if Config.Actived.NoWeaponDrop then
         Citizen.CreateThread(function()
             while true do
                 local PedList = GetGamePool("CPed")
@@ -140,37 +134,28 @@ TriggerServerCallbackAsync("Utility:GetTriggerKey", function(tk) Utility.Token =
         end)
     end
 
-    Citizen.CreateThread(function()
-        Citizen.Wait(500)
-
+    RegisterCommand("ut_reloading", function()
         local PlayerPed = PlayerPedId()
-        local ammo = 0
 
-        while true do
-            if IsPedArmed(PlayerPed, 4) then
-                if IsPedReloading(PlayerPed) then
-                    local weapon = GetSelectedPedWeapon(PlayerPed)
-                    local maxAmmo = GetAmmoInPedWeapon(PlayerPed, weapon)
-                    local weaponName
+        Citizen.Wait(500)
+        if IsPedArmed(PlayerPed, 4) then
+            if IsPedReloading(PlayerPed) then
+                local weapon = GetSelectedPedWeapon(PlayerPed)
+                local maxAmmo = GetAmmoInPedWeapon(PlayerPed, weapon)
+                local weaponName
 
-                    if ammo ~= maxAmmo then
-                        ammo = maxAmmo
-
-                        for k,v in pairs(Utility.PlayerData.other_info.weapon) do
-                            if weapon == GetHashKey(k) then
-                                weaponName = k
-                                break
-                            end
-                        end
-
-                        if weaponName ~= nil then
-                            TriggerServerEvent("Utility:Weapon:SyncAmmo", Utility.PlayerData.steam, weaponName, maxAmmo)
-                        end
+                for k,v in pairs(Utility.PlayerData.other_info.weapon) do
+                    if weapon == GetHashKey(k) then
+                        weaponName = k
+                        break
                     end
                 end
-            else
-                Citizen.Wait(500)
+
+                if weaponName ~= nil then
+                    --print("Syncing ammo "..weaponName, maxAmmo)
+                    TriggerServerEvent("Utility:Weapon:SyncAmmo", Utility.PlayerData.steam, weaponName, maxAmmo)
+                end
             end
-            Citizen.Wait(100)
         end
-    end)
+    end, true)
+    RegisterKeyMapping("ut_reloading", "DONT CHANGE THIS KEY!", "keyboard", "r")

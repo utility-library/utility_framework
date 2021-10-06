@@ -1,3 +1,5 @@
+local mathm = addon("math")
+
 RegisterCommand("dv", function(source, args)
     local uPlayer = Utility.PlayerData
     
@@ -89,11 +91,21 @@ RegisterCommand("id", function(source)
 end)
 
 RegisterCommand("coords", function(source)
-    print(GetEntityCoords(PlayerPedId()))
+    local coord = GetEntityCoords(PlayerPedId())
+    
+    SendNUIMessage({
+        clipboard = true,
+        text = "vector3("..mathm.round(coord.x, 2)..", "..mathm.round(coord.y, 2)..", "..mathm.round(coord.z, 2)..")"    
+    })
 end)
 
 RegisterCommand("rotation", function(source)
-    print(GetEntityRotation(PlayerPedId()))
+    local rotation = GetEntityRotation(PlayerPedId())
+    
+    SendNUIMessage({
+        clipboard = true,
+        text = "vector3("..mathm.round(rotation.x, 2)..", "..mathm.round(rotation.y, 2)..", "..mathm.round(rotation.z, 2)..")"    
+    })
 end)
 
 RegisterCommand("die", function(source, args)

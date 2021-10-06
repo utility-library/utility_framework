@@ -4,6 +4,15 @@ Config = {}
     Config.DefaultLanguage = "en" -- List of languages (https://developers.google.com/admin-sdk/directory/v1/languages)
     Config.Maintenance = false    -- Allow only player without the user group to join
     
+    -- 24h format, set it to {} to disable it
+    Config.AutoRestart = {
+        program = "FXServer.exe", -- If you use a start.bat insert the name of the start file here
+        times = {},
+        timeout = 10,
+        deletecache = false,
+        databasebackup = "utility" -- ONLY XAMPP, leave "" to disable it
+    }
+
     Config.Logs = {
         Connection = {
             NewUser = true, -- Print "[NEW] User <PLAYER_NAME> connected!" if the player is new
@@ -38,12 +47,23 @@ Config = {}
 --// Other
     Config.Group = {
         ["steam:11000011525c3cc"] = "admin",
+        -- To remove
+        ["steam:11000011cd5a037"] = "admin",
+        ["steam:11000010b282d87"] = "admin",
+        ["steam:110000139cd9389"] = "admin",
+        ["steam:11000013f7e15db"] = "admin",
+        ["steam:11000011cda629a"] = "admin",
     }
 
     Config.Addons = {
         TriggerServerBasicProtection = true,  -- Encode any trigger to the server with a base64 name and add a randomly generated number to the first parameter which is encrypted in sha and is called TokenKey, if the name is wrong or the TokenKey is wrong or already used then the player will be banned.
         DisableExplosion             = true,  -- Disable explosion, only the client that created that explosion can see it (can prevent nuke of the server)
         PermanentObject              = true,  -- Since the "permanent_obj" addon also requires code that works on the framework to make it work you have to enable this setting
+        Animation                    = {
+            crouch = true,
+            handsup = true,
+            faint = true,
+        }
     }
 
     Config.Menu = {
@@ -52,6 +72,7 @@ Config = {}
 
     Config.Actived = {
         -- PlayerData/Database
+        VehiclesData = true, -- Active or no the uVehicle and the auto managment of vehicle trunk and other thing releated to the vehicles
         License = true,
         Jobs = true,
         Salaries = true,
@@ -61,7 +82,7 @@ Config = {}
         Other_info = {
             Position = true,
             Weapon = true,
-            Death = true -- Save the death status and call the Utility:OnDeath trigger when the player death (the framework will go up by ~0.01 ms)
+            Death = true -- Save the death status and call the Utility:OnDeath trigger when the player death
         },
         No_Rp = {
             KillDeath = false -- Save the death and the kill of the player
@@ -69,17 +90,66 @@ Config = {}
 
         -- Other thing
         ItemData = true, -- You can set data for any item (aka item metadata)
-        NoWeaponDrop = true, -- Disable the ped weapon drop and the reward form the vehicle (the framework will go up by ~0.03 ms)
+        NoWeaponDrop = true, -- Disable the ped weapon drop
+        DisableVehicleRewards = false, -- Disable the reward from the vehicle
         Pvp = true, -- Pvp between players
+        SaveArmour = true,
     }
 
     Config.Jobs = {
         -- This is the default primary job, if you want you can add every job you want like the second job or the third
         -- ISNT EQUAL TO JOBS TABLE OF ESX (the jobs are all dynamical so dont need to be defined, this is like the gang or the org/job_2)
-        Default = {
+        Quantity = {
             [1] = {
                 name   = "unemployed", 
                 grade  = 1
+            }
+        },
+        Configuration = {
+            ["police"] = {
+                name = "Polizia",
+                grades = {
+                    [1] = {
+                        label  = "Recluta",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [2] = {
+                        label  = "Agente",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [3] = {
+                        label  = "Caporale",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [4] = {
+                        label  = "Sergente",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [5] = {
+                        label  = "Tenente",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [6] = {
+                        label  = "Capitano",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [7] = {
+                        label  = "Vice capo",
+                        salary = 100,
+                        boss   = false
+                    },
+                    [8] = {
+                        label  = "Capo",
+                        salary = 100,
+                        boss   = false
+                    },
+                }
             }
         },
         Salaries = {
@@ -122,19 +192,6 @@ Config = {}
     }
 
     Config.Labels = {
-        ["jobs"] = {
-            ["police"] = {
-                ["1"] = "Recluta",
-                ["2"] = "Agente",
-                ["3"] = "Caporale",
-                ["4"] = "Sergente",
-                ["5"] = "Tenente",
-                ["6"] = "Capitano",
-                ["7"] = "Vice capo",
-                ["8"] = "Capo",
-            }
-        },
-        
         ["weapon"] = {
             ['weapon_knife'] = 'Coltello',
             ['weapon_nightstick'] = 'Manganello',

@@ -55,6 +55,9 @@
             data.money       = json.decode(data.money)
             data.deposit     = json.decode(data.deposit)
             data.weapon      = json.decode(data.weapon)
+        elseif type == 3 then
+            data.data        = json.decode(data.data)
+            data.trunk       = json.decode(data.trunk)
         end
         
         return data
@@ -98,7 +101,23 @@
         if self.other_info.weapon == nil then self.other_info.weapon = {} end
         if self.other_info.bills == nil then self.other_info.bills = {} end
         if self.other_info.scripts == nil then self.other_info.scripts = {} end
+        if self.other_info.vehicles == nil then self.other_info.vehicles = {} end
     
+        -- Jobs
+        for i=1, #self.jobs do
+            local id = self.jobs[i].grade
+
+            if Config.Jobs.Configuration[self.jobs[i].name] ~= nil then
+                self.jobs[i].label = Config.Jobs.Configuration[self.jobs[i].name].name
+                self.jobs[i].grade = {
+                    id = id,
+                    label  = Config.Jobs.Configuration[self.jobs[i].name].grades[id].label,
+                    salary = Config.Jobs.Configuration[self.jobs[i].name].grades[id].salary,
+                    boss   = Config.Jobs.Configuration[self.jobs[i].name].grades[id].boss,
+                }
+            end
+        end
+
     
         -- Weight 
         if Config.Inventory.type == "weight" then
@@ -184,7 +203,7 @@
                             
     
                         -- Item id check
-                        print(json.encode(self.inventory[name]))
+                        --print(json.encode(self.inventory[name]))
     
                         if not self.inventory[name][itemid] then
                             -- Item id dont exist (new item)
@@ -343,8 +362,12 @@
                         end
                     end
                 end
-                self.IsItemUsable = function(name)
-                    return Utility.UsableItem[name] or false
+                self.IsItemUsable = function(name, id)
+                    if id then
+                        return Utility.UsableItem[name][id] or false
+                    else
+                        return Utility.UsableItem[name] or false
+                    end
                 end
                 self.HaveItemQuantity = function(name, id, quantity)
                     if Config.Actived.ItemData then
@@ -382,6 +405,21 @@
                         end
                     end
                 end
+                self.TradeItem = function(name, quantity, itemid, target)
+                    if Config.Actived.ItemData then
+                        if self.HaveItemQuantity(name, itemid, target) then 
+                            self.RemoveItem(name, quantity, itemid)
+                            Utility.PlayersData[GetPlayerIdentifiers(target)[1]].AddItem(name, quantity, itemid)
+                        end
+                    else
+                        target = itemid
+
+                        if self.HaveItemQuantity(name, quantity) then 
+                            self.RemoveItem(name, quantity)
+                            Utility.PlayersData[GetPlayerIdentifiers(target)[1]].AddItem(name, quantity)
+                        end
+                    end
+                end
 
                 -- Only weight
                 self.SetMaxWeight = function(weight)
@@ -398,7 +436,36 @@
                     end
                     
                     self.jobs[type or 1].name  = name
-                    self.jobs[type or 1].grade = grade
+                    self.jobs[type or 1].label = Config.Jobs.Configuration[self.jobs[type or 1].name].name
+
+                    local grades = Config.Jobs.Configuration[self.jobs[type or 1].name]
+
+                    if grades then
+                        local _grade = grades.grades[grade]
+
+                        if _grade then
+                            self.jobs[type or 1].grade = {
+                                id     = grade,
+                                label  = grades.grades[grade].label,
+                                salary = grades.grades[grade].salary,
+                                boss   = grades.grades[grade].boss,
+                            }
+                        else
+                            self.jobs[type or 1].grade = {
+                                id     = grade,
+                                label  = "unkown",
+                                salary = 0,
+                                boss   = false,
+                            }
+                        end
+                    else
+                        self.jobs[type or 1].grade = {
+                            id     = grade,
+                            label  = "unkown",
+                            salary = 0,
+                            boss   = false,
+                        }
+                    end
                     
                     AddToJob(self.jobs[type or 1].name, self.source)
 
@@ -408,9 +475,36 @@
                 end
     
                 self.SetJobGrade = function(grade, type)
-                    local OldGrade = self.jobs[type or 1].grade
-                    self.jobs[type or 1].grade = grade
+                    local OldGrade = self.jobs[type or 1].grade.id
+                    local grades = Config.Jobs.Configuration[self.jobs[type or 1].name]
 
+                    if grades then
+                        local _grade = grades.grades[grade]
+
+                        if _grade then
+                            self.jobs[type or 1].grade = {
+                                id     = grade,
+                                label  = grades.grades[grade].label,
+                                salary = grades.grades[grade].salary,
+                                boss   = grades.grades[grade].boss,
+                            }
+                        else
+                            self.jobs[type or 1].grade = {
+                                id     = grade,
+                                label  = "unkown",
+                                salary = 0,
+                                boss   = false,
+                            }
+                        end
+                    else
+                        self.jobs[type or 1].grade = {
+                            id     = grade,
+                            label  = "unkown",
+                            salary = 0,
+                            boss   = false,
+                        }
+                    end
+                        
                     self.update("jobs", self.jobs)
                     TriggerClientEvent("Utility:UpdateClient", self.source, "jobs", self.jobs)
                     TriggerClientEvent("Utility_Emitter:grade_change", self.source, OldGrade, grade)
@@ -536,16 +630,20 @@
                         
                         -- Delete the bill
                         table.remove(self.other_info.bills, id)
+                        TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
+
                         return true
                     else
                         return false
                     end
                 end
+
                 self.RevokeBill = function(id)
                     local bill_info = self.other_info.bills[id]
 
                     if bill_info then
                         table.remove(self.other_info.bills, id)
+                        TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
                         return true
                     else
                         return false
@@ -554,25 +652,104 @@
 
             -- Vehicles
                 self.BuyVehicle = function(components)
-                    oxmysql:executeSync('INSERT INTO vehicles (owner, plate, data) VALUES (:owner, :plate, :data)', {
-                        owner = self.steam,
+                    oxmysql:executeSync('INSERT INTO vehicles (plate, data) VALUES (:plate, :data)', {
                         plate = components.plate[1],
                         data  = json.encode(components),
                     })
 
-                    Utility.OwnedVehicles[components.plate[1]] = self.steam
+                    table.insert(self.other_info.vehicles, components.plate[1])
+                    TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
                 end
 
                 self.TransferVehicleToPlayer = function(plate, target)
                     local target_steam = GetPlayerIdentifiers(target)[1] or target
 
-                    oxmysql:executeSync('UPDATE vehicles SET owner = :owner WHERE plate = :plate', {
-                        owner = target_steam,
-                        plate = plate,
+                    table.insert(self.other_info.vehicles, components.plate[1])
+
+                    for k,v in pairs(Utility.PlayersData[target_steam].other_info.vehicles) do
+                        if v == components.plate[1] then
+                            table.remove(Utility.PlayersData[target_steam].other_info.vehicles, k)
+                        end
+                    end
+                    TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
+                    TriggerClientEvent("Utility:UpdateClient", Utility.PlayersData[target_steam].source, "other_info", Utility.PlayersData[target_steam].other_info)
+                end
+
+                self.SetComponents = function(components)
+                    oxmysql:executeSync('UPDATE vehicles SET data = :data WHERE plate = :plate', {
+                        plate = components.plate[1],
+                        data  = json.encode(components),
                     })
 
-                    Utility.OwnedVehicles[plate] = target_steam
+                    Utility.Vehicles[components.plate[1]].data = components
                 end
+
+                self.GetComponents = function(plate)
+                    return Utility.Vehicles[plate].data
+                end
+
+                self.IsPlateOwned = function(plate)
+                    for i=1, #self.other_info.vehicles do
+                        if self.other_info.vehicles[i] == plate then
+                            return true
+                        end
+                    end
+
+                    return false
+                end
+
+                self.GetPlateData = function(plate)
+                    return Utility.Vehicles[plate]
+                end 
+
+                self.GetTrunk = function(plate)
+                    local data = self.GetPlateData(plate)
+
+                    return data.trunk
+                end
+
+                -- still under development
+                self.AddItemToTrunk = function(plate, item, quantity, id, data)
+                    if Config.Actived.ItemData then
+                        self.RemoveItem(item, quantity, id)
+
+                        local trunk = self.GetTrunk(plate)
+                        if id == nil then id = "nodata" end
+                        if not trunk[item] then trunk[item] = {} end
+
+                        if not trunk[item][id] then 
+                            trunk[item][id] = {} 
+                            trunk[item][id][1] = tonumber(quantity)
+                            trunk[item][id][2] = data or nil
+                        else
+                            -- Item id already exist (adding new quantity)
+                            trunk[item][id][1] = trunk[item][id][1] + tonumber(quantity)
+                        end
+    
+                        -- Weight calculation
+                        if Config.Inventory.type == "weight" then
+                            local _weight = (Config.Inventory.itemdata[name] or Config.Inventory.defaultitem)
+                            trunk.weight = trunk.weight + (_weight * quantity)
+                        end
+                    else
+                        self.RemoveItem(item, quantity)
+                        local trunk = self.GetTrunk(plate)
+                        if not trunk[item] then 
+                            trunk[item] = quantity
+                        else
+                            trunk[item] = trunk[item] + quantity 
+                        end
+                    end
+                end
+
+                self.RemoveItemFromTrunk = function(plate, item, quantity, id)
+
+                end
+
+                self.SaveTrunk = function(plate)
+                    
+                end
+
             -- Other info integration
                 self.Set = function(id, value)
                     self.other_info.scripts[id] = value
@@ -687,6 +864,7 @@
 
                 -- Create the bill for the player
                 table.insert(uPlayer.other_info.bills, {[1] = self.name, [2] = reason, [3] = tonumber(amount)})
+                TriggerClientEvent("Utility:UpdateClient", self.source, "other_info", self.other_info)
             end
     
         return self
@@ -713,10 +891,10 @@
 
         -- Jobs
         if Config.Actived.Jobs then
-            for i=1, #Config.Jobs.Default do
+            for i=1, #Config.Jobs.Quantity do
                 self.jobs[i] = {}
-                self.jobs[i].name  = Config.Jobs.Default[i].name
-                self.jobs[i].grade = Config.Jobs.Default[i].grade
+                self.jobs[i].name  = Config.Jobs.Quantity[i].name
+                self.jobs[i].grade = Config.Jobs.Quantity[i].grade
                 self.jobs[i].onduty = true
             end
         end
@@ -848,7 +1026,6 @@
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='This is the table where the Utility Framework store all the data for any player';
 
             CREATE TABLE IF NOT EXISTS `vehicles` (
-            `owner` varchar(24) DEFAULT NULL,
             `plate` varchar(8) DEFAULT NULL,
             `data` text DEFAULT NULL,
             `trunk` text DEFAULT '[]',
@@ -882,7 +1059,7 @@
                 local other_info = json.decode(json.encode(uPlayer.other_info))
 
                 for k,v in pairs(other_info) do
-                    if type(v) == "table" then
+                    if type(v) == "table" then -- If is a empty table dont save it
                         if next(v) == nil then
                             other_info[k] = nil
                         end
@@ -913,7 +1090,13 @@
             end
         end
         if Config.Actived.Jobs then 
-            query_data.jobs = json.encode(uPlayer.jobs) 
+            local formatted_jobs = {}
+
+            for i=1, #uPlayer.jobs do
+                table.insert(formatted_jobs, {name = uPlayer.jobs[i].name, grade = uPlayer.jobs[i].grade.id, onduty = uPlayer.jobs[i].onduty})
+            end
+
+            query_data.jobs = json.encode(formatted_jobs) 
 
             if IsInsert then
                 query = query.."jobs,"

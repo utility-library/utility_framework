@@ -10,7 +10,7 @@
         SocietyData = {},
         UsableItem = {},
         Jobs = {},
-        OwnedVehicles = {},
+        Vehicles = {},
         SocietyAlreadySaved = false,
 
         -- Updated data for the server
@@ -28,6 +28,7 @@
             return Utility.Jobs[job]
         end
     }
+
 
 --// Startup
     -- TBP: Trigger Basic Protection
@@ -213,18 +214,24 @@
         cb(uPlayer)
     end)
 
-    --[[Citizen.CreateThread(function()
-        oxmysql:fetchSync('SELECT plate, owner FROM vehicles', {}, function(vehicles)
-            if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
-    
-            for i=1, #vehicles do
-                Utility.OwnedVehicles[vehicles[i].plate] = vehicles[i].owner
-            end
+    if Config.Actived.VehiclesData then
+        Citizen.CreateThread(function()
+            oxmysql:fetchSync('SELECT plate, owner, data, trunk FROM vehicles', {}, function(vehicles)
+                if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
+        
+                for i=1, #vehicles do
+                    Utility.Vehicles[vehicles[i].plate] = ConvertJsonToTable(vehicles[i], 3)
+                end
+            end)
         end)
-    end)]]
+    end
 
-    RegisterServerCallback("Utility:IsPlateOwned", function(plate)
-        cb(Utility.OwnedVehicles[plate] == GetPlayerIdentifiers(source)[1])
+    RegisterServerCallback("Utility:GetComponents", function(plate)
+        if Utility.PlayersData[GetPlayerIdentifiers(source)[1]].IsPlateOwned(plate) then
+            cb(Utility.Vehicles[plate].data)
+        else
+            cb(nil)
+        end
     end)
 
 
@@ -249,13 +256,23 @@
 
         if source ~= 0 or source ~= nil then
             local x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(source)))
+            local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(source)[1]]
+
+            if Config.Actived.SaveArmour then
+                local armour = GetPedArmour(GetPlayerPed(source))
+
+                if armour == 0 then
+                    uPlayer.other_info.armour = nil
+                else
+                    uPlayer.other_info.armour = GetPedArmour(GetPlayerPed(source))
+                end
+            end
 
             --print("Steam = "..steam)
             --print("Coords = ", x,y,z)
 
             if x ~= 0.0 and y ~= 0.0 then
                 analizer.start()
-                local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(source)[1]]
 
                 -- function.lua:649
                 RemoveFromJob(uPlayer.jobs[1].name, uPlayer.source)
@@ -276,70 +293,165 @@
 
     -- Manual save
     RegisterCommand("utility", function(_, args)
-        if args[1] == "save" then
-            local i = 0
-
-            for k,v in pairs(Utility.PlayersData) do
-                if v.source ~= nil then
-                    i = i + 1
-                    if GetPlayerPing(v.source) > 0 then
-                        analizer.start()
-                        local x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(v.source)))
-                        local query, query_data = GetQueryFromuPlayer(v, {x=x, y=y, z=z})
-                    
-                        oxmysql:executeSync('UPDATE users SET '..query:sub(1, -2)..' WHERE steam = :steam', query_data)
-                        Utility.LogToLogger("Main", v.name.." Manually saved in "..analizer.finish().."ms")
-                    end
-                end
-            end
-
-            print("[^3INFO^0] Saved "..i.." players")
-        elseif args[1] == "exit" then
-            print("[^3INFO^0] The server will be ^1shutdown in 10 seconds^0, all players will be ^1kicked^0.  To ^3stop the shutdown^0 process type the command ^4\"utility cexit\"^0")
-            Citizen.Wait(10000)
-
-            if not exitStopped then
-                local savedPlayers = 0
+        if _ == 0 then
+            if args[1] == "save" then
+                local i = 0
 
                 for k,v in pairs(Utility.PlayersData) do
-                    if v.source ~= nil then -- Have joined in the server?
-                        if GetPlayerPing(v.source) > 0 then -- Is online?
-                            savedPlayers = savedPlayers + 1
-                            DropPlayer(v.source, "Server shutting down\nSource: \"utility exit\" command")
-                            Citizen.Wait(10)
+                    if v.source ~= nil then
+                        i = i + 1
+                        if GetPlayerPing(v.source) > 0 then
+                            analizer.start()
+                            local x,y,z = table.unpack(GetEntityCoords(GetPlayerPed(v.source)))
+                            local query, query_data = GetQueryFromuPlayer(v, {x=x, y=y, z=z})
+                        
+                            oxmysql:executeSync('UPDATE users SET '..query:sub(1, -2)..' WHERE steam = :steam', query_data)
+                            Utility.LogToLogger("Main", v.name.." Manually saved in "..analizer.finish().."ms")
                         end
                     end
                 end
-                
-                print("[^3INFO^0] Saved "..savedPlayers.." players")
 
-                --If there is no player then save the company
-                if not Utility.SocietyAlreadySaved then
-                    local societySaved = 0
-                    Utility.LogToLogger("Main", "Saving society why the server is shutting down")
-                    
-                    Utility.SocietyAlreadySaved = true
-                    for k,v in pairs(Utility.SocietyData) do
-                        societySaved = societySaved + 1
-                        oxmysql:executeSync('UPDATE society SET money = :money, deposit = :deposit, weapon = :weapon WHERE name = :name', {
-                            money   = json.encode(v.money),
-                            deposit = json.encode(v.deposit or {}),
-                            weapon  = json.encode(v.weapon or {}),
-                            name    = k
-                        })
+                print("[^3INFO^0] Saved "..i.." players")
+            elseif args[1] == "exit" then
+                print("[^3INFO^0] The server will be ^1shutdown in 10 seconds^0, all players will be ^1kicked^0.  To ^3stop the shutdown^0 process type the command ^4\"utility cexit\"^0")
+                Citizen.Wait(10000)
+
+                if not exitStopped then
+                    local savedPlayers = 0
+
+                    for k,v in pairs(Utility.PlayersData) do
+                        if v.source ~= nil then -- Have joined in the server?
+                            if GetPlayerPing(v.source) > 0 then -- Is online?
+                                savedPlayers = savedPlayers + 1
+                                DropPlayer(v.source, "Server shutting down\nSource: \"utility exit\" command")
+                                Citizen.Wait(10)
+                            end
+                        end
                     end
-                    print("[^3INFO^0] Saved "..societySaved.." societies")
-                end
+                    
+                    print("[^3INFO^0] Saved "..savedPlayers.." players")
 
-                Citizen.Wait(1000)
-                os.exit()
-            else
-                exitStopped = false
+                    --If there is no player then save the company
+                    if not Utility.SocietyAlreadySaved then
+                        local societySaved = 0
+                        Utility.LogToLogger("Main", "Saving society why the server is shutting down")
+                        
+                        Utility.SocietyAlreadySaved = true
+                        for k,v in pairs(Utility.SocietyData) do
+                            societySaved = societySaved + 1
+                            oxmysql:executeSync('UPDATE society SET money = :money, deposit = :deposit, weapon = :weapon WHERE name = :name', {
+                                money   = json.encode(v.money),
+                                deposit = json.encode(v.deposit or {}),
+                                weapon  = json.encode(v.weapon or {}),
+                                name    = k
+                            })
+                        end
+                        print("[^3INFO^0] Saved "..societySaved.." societies")
+                    end
+
+                    Citizen.Wait(1000)
+                    os.exit()
+                else
+                    exitStopped = false
+                end
+            elseif args[1] == "restart" then
+                print("[^3INFO^0] The server will be ^1shutdown in 10 seconds^0, all players will be ^1kicked^0.  To ^3stop the shutdown^0 process type the command ^4\"utility cexit\"^0")
+                Citizen.Wait(10000)
+
+                if not exitStopped then
+                    local savedPlayers = 0
+
+                    for k,v in pairs(Utility.PlayersData) do
+                        if v.source ~= nil then -- Have joined in the server?
+                            if GetPlayerPing(v.source) > 0 then -- Is online?
+                                savedPlayers = savedPlayers + 1
+                                DropPlayer(v.source, "Server shutting down\nSource: \"utility exit\" command")
+                                Citizen.Wait(10)
+                            end
+                        end
+                    end
+                    
+                    print("[^3INFO^0] Saved "..savedPlayers.." players")
+
+                    --If there is no player then save the company
+                    if not Utility.SocietyAlreadySaved then
+                        local societySaved = 0
+                        Utility.LogToLogger("Main", "Saving society why the server is shutting down")
+                        
+                        Utility.SocietyAlreadySaved = true
+                        for k,v in pairs(Utility.SocietyData) do
+                            societySaved = societySaved + 1
+                            oxmysql:executeSync('UPDATE society SET money = :money, deposit = :deposit, weapon = :weapon WHERE name = :name', {
+                                money   = json.encode(v.money),
+                                deposit = json.encode(v.deposit or {}),
+                                weapon  = json.encode(v.weapon or {}),
+                                name    = k
+                            })
+                        end
+                        print("[^3INFO^0] Saved "..societySaved.." societies")
+                    end
+
+                    Citizen.Wait(1000)
+                    local file = io.open("restart.bat", "w")
+                    if Config.AutoRestart.deletecache then
+                        file:write([[
+                            @ECHO OFF 
+                            title Server restart
+                            echo ----------------------------
+                            echo [104mUtility AutoRestarter[0m
+                            echo ----------------------------
+                            timeout 1 /nobreak> nil 
+                            taskkill /im ]]..Config.AutoRestart.program..[[> nil 
+                            
+                            echo [[91m-[0m] Stopping [93m]]..Config.AutoRestart.program..[[[0m...
+
+                            timeout 2 /nobreak> nil
+                            rd /s /q %~dp0\cache
+
+                            echo [[91m-[0m] [93mCache[0m cleaned...
+                            
+                            timeout ]]..Config.AutoRestart.timeout..[[ /nobreak> nil
+
+                            echo [[92m+[0m] Starting [93m]]..Config.AutoRestart.program..[[[0m...
+
+                            start ]]..Config.AutoRestart.program..[[ 
+
+                            timeout 5 /nobreak> nil
+                            del "%~f0" & exit
+                        ]])
+                    else
+                        file:write([[
+                            @ECHO OFF 
+                            title Server restart
+                            echo ----------------------------
+                            echo [104mUtility AutoRestarter[0m
+                            echo ----------------------------
+                            timeout 1 /nobreak> nil 
+                            taskkill /im ]]..Config.AutoRestart.program..[[> nil
+
+                            echo [[91m-[0m] Stopping [93m]]..Config.AutoRestart.program..[[[0m...
+
+                            timeout ]]..Config.AutoRestart.timeout..[[ /nobreak> nil
+
+                            echo [[92m+[0m] Starting [93m]]..Config.AutoRestart.program..[[[0m...
+
+                            start ]]..Config.AutoRestart.program..[[ 
+                            timeout 5 /nobreak> nil
+                            del "%~f0" & exit
+                        ]])
+                    end
+                    file:close()
+
+                    Citizen.Wait(500)
+                    os.execute("start restart.bat")
+                else
+                    exitStopped = false
+                end
+            elseif args[1] == "cexit" then
+                exitStopped = true
             end
-        elseif args[1] == "cexit" then
-            exitStopped = true
         end
-    end, true)
+    end)
 
 --// Triggers
     -- Weapon
@@ -462,4 +574,43 @@
     end)
 
     -- Advertisement
-    SetConvarServerInfo("Framework", "Utility by XenoS.exe#2859")
+    SetConvarServerInfo("Framework", "Utility")
+
+    -- AutoRestart
+    if next(Config.AutoRestart) ~= nil then
+        Citizen.CreateThread(function()
+            local lastrestart = LoadResourceFile("utility_framework", "cache/last_restart.utility")
+
+            while true do
+                local currentTime = os.date("%H:%M")
+    
+                for i=1, #Config.AutoRestart.times do
+                    if currentTime == Config.AutoRestart.times[i] and lastrestart ~= currentTime then
+                        SaveResourceFile("utility_framework", "cache/last_restart.utility", Config.AutoRestart.times[i])
+
+                        if Config.AutoRestart.databasebackup then
+                            local file = io.open("database.bat", "w")
+
+                            file:write([[
+                                title Database Backup
+                                echo Utility Dabase Backup
+                                c:
+                                if not exist "%userprofile%\desktop\DatabaseBackup" mkdir %userprofile%\desktop\DatabaseBackup
+                                cd C:\xampp\mysql\bin
+                                mysqldump -u root ]]..Config.AutoRestart.databasebackup..[[ >%userprofile%\desktop\DatabaseBackup\]]..os.date("%H.%M_%d-%m")..[[.sql
+                                del "%~f0" & exit
+                            ]])
+                            file:close()
+                    
+                            os.execute("start database.bat")
+                            print("[^3INFO^0] Database backuped!")
+                        end
+
+                        ExecuteCommand("utility restart")
+                    end
+                end
+    
+                Citizen.Wait(60000)
+            end
+        end)
+    end

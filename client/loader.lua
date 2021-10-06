@@ -246,17 +246,6 @@ Utility = {}
             end
         end
 
-        IsPlateOwnedByPlayer = function(plate)
-            -- TODO
-            local a = promise:new()
-
-            TriggerServerCallbackAsync("Utility:IsPlateOwned", function(owned)
-                a:resolve(owned)
-            end, plate)
-
-            return Citizen.Await(a)
-        end
-        
     --// Addons
         addon = function(name)
             local module = LoadResourceFile("utility_framework", "client/addons/"..name..".lua")

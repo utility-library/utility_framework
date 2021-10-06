@@ -4,7 +4,7 @@
 
 local mathm = addon("math")
 local self = {
-    SetEntityPermanent = function(entity, permanent)
+    set = function(entity, permanent)
         if permanent then -- Add
             if not IsEntityAMissionEntity(entity) then
                 SetEntityAsMissionEntity(entity, true, true)

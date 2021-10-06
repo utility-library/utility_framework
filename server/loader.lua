@@ -76,7 +76,7 @@ end)
                     source = _uPlayer.source
                     uPlayer = _uPlayer
                     
-                    if _uPlayer.HaveItemQuantity(name, 1) then
+                    if _uPlayer.HaveItemQuantity(name, id, 1) then
                         cb(true)
                     else
                         cb(false)
@@ -225,4 +225,13 @@ print = function(...)
     else
         _print(...)
     end
+end
+
+
+GetSteam = function(source)
+    if steamCache[source] == nil then 
+        steamCache[source] = GetPlayerIdentifiers(source)[1] 
+    end
+
+    return steamCache[source]     
 end

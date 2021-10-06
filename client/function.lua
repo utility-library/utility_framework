@@ -37,6 +37,63 @@ GetLabel = function(key, header, language)
     end
 end
 
+SetVehicleComponents = function(vehicleHandle, component)
+    if type(component.plate) == "table" then
+        SetVehicleNumberPlateText(vehicleHandle, component.plate[1])
+        SetVehicleNumberPlateTextIndex(vehicleHandle, component.plate[2])
+    end
+
+    if type(component.health) == "table" then
+        SetVehicleBodyHealth(vehicleHandle, component.health[1])
+        SetVehicleEngineHealth(vehicleHandle, component.health[2])
+        SetVehiclePetrolTankHealth(vehicleHandle, component.health[3])
+    end
+
+    if component.fuel then SetVehicleFuelLevel(vehicleHandle, component.fuel) end
+    if component.color then 
+        SetVehicleColours(vehicleHandle, component.color[1], component.color[2]) 
+        SetVehicleExtraColours(vehicleHandle, component.color[3], component.color[4])
+
+        SetVehicleTyreSmokeColor(vehicleHandle, component.color[5][1], component.color[5][2], component.color[5][3])
+    end
+
+    if component.wheels then SetVehicleWheelType(vehicleHandle, component.wheels) end
+    if component.windowTint then SetVehicleWindowTint(vehicleHandle, component.windowTint) end
+    if component.neon then 
+        SetVehicleXenonLightsColor(vehicleHandle, component.neon[1])
+
+        SetVehicleNeonLightEnabled(vehicleHandle, 0, component.neon[2])
+        SetVehicleNeonLightEnabled(vehicleHandle, 1, component.neon[3])
+        SetVehicleNeonLightEnabled(vehicleHandle, 2, component.neon[4])
+        SetVehicleNeonLightEnabled(vehicleHandle, 3, component.neon[5])
+        SetVehicleNeonLightsColour(vehicleHandle, component.neon[6][1], component.neon[6][2], component.neon[6][3])
+    end
+
+    if component.extras then
+        for i=1, #component.extras do
+            SetVehicleExtra(vehicleHandle, tonumber(component.extras[i]), 1)
+        end
+    end
+
+    if component.mods then
+        for i=1, #component.mods do
+            if i < 19 then
+                SetVehicleMod(vehicleHandle, i, component.mods[i], false)
+            elseif i > 21 then
+                SetVehicleMod(vehicleHandle, i, component.mods[i], false)
+            end
+        end
+
+        ToggleVehicleMod(vehicleHandle, 18, component.mods[19])
+        ToggleVehicleMod(vehicleHandle, 20, component.mods[20])
+        ToggleVehicleMod(vehicleHandle, 22, component.mods[21])
+    end
+
+    if component.livery then
+        SetVehicleLivery(vehicleHandle, component.livery)
+    end
+end
+
 uPlayerPopulate = function(self)
     -- Function
         -- Money
@@ -67,6 +124,19 @@ uPlayerPopulate = function(self)
             self.IsItemUsable = function(name)
                 return Utility.UsableItem[name] or false
             end
+
+            self.UseItem = function(name, id)
+                if id then
+                    if Utility.UsableItem[name][id] then
+                        TriggerEvent("Utility_Usable:"..name..":"..id, self)
+                    end
+                else
+                    if Utility.UsableItem[name] then
+                        TriggerEvent("Utility_Usable:"..name, self)
+                    end
+                end
+            end
+            
             self.HaveItemQuantity = function(name, quantity)
                 if self.inventory[name] then
                     return (self.inventory[name] >= quantity)
@@ -149,6 +219,48 @@ uPlayerPopulate = function(self)
                     return self.other_info.scripts
                 else
                     return self.other_info.scripts[id] or nil
+                end
+            end
+        
+        -- Job
+            self.GetJobInfo = function(name)
+                return Config.Jobs.Configuration[name]
+            end
+        -- Vehicle
+            self.IsPlateOwned = function(plate)
+                for i=1, #self.other_info.vehicles do
+                    if self.other_info.vehicles[i] == plate then
+                        return true
+                    end
+                end
+
+                return false
+            end
+
+            self.GetComponents = function(plate)
+                local a = promise:new()
+                
+                TriggerServerCallbackSync("Utility:GetComponents", function(comp)
+                    a:resolve(comp)
+                end, plate)
+
+                return Citizen.Await(a)
+            end
+
+            self.SpawnOwnedVehicle = function(plate, coords, network)
+                if self.IsPlateOwned(plate) then
+                    local components = self.GetComponents(plate)
+                    RequestModel(components.model)
+                    
+                    while not HasModelLoaded(components.model) do
+                        Citizen.Wait(1)
+                    end
+
+                    local veh = CreateVehicle(components.model, coords, 0.0, true)
+                    SetVehicleComponents(veh, components)
+                    return veh, true
+                else
+                    return nil, false
                 end
             end
 

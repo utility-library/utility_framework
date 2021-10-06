@@ -9,6 +9,7 @@ client_scripts {
     "client/menu/script.lua",
     "client/internal_addons/skin.lua",
     "client/internal_addons/permanent_object.lua",
+    "client/internal_addons/basic_animation.lua",
 }
 
 server_scripts {
