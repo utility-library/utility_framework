@@ -1,1 +1,2 @@
-config.lua
+cache/last_restart.utility
+logs/*.txt
