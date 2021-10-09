@@ -38,7 +38,7 @@ CreateMenu = function(title, content, cb, close)
     menu.menus[1].cb = cb or function()end
     menu.menus[1].close = close or function()end
     
-    SendNUIMessage({open = true,content = content, closeLabel=Config.Menu.CloseLabel, title = title})
+    SendNUIMessage({open = true,content = content, closeLabel=Config.Labels[, title = title})
     SetNuiFocus(true, true)
 end
 
@@ -59,7 +59,7 @@ local MenuTemplate = {
             Citizen.Wait(50)
 
             if not menu.preventDefault then
-                SendNUIMessage({update = true, refresh = true, content = menu.menus[menu.currentSubMenu].data, closeLabel=Config.Menu.CloseLabel, title = menu.menus[menu.currentSubMenu].title})
+                SendNUIMessage({update = true, refresh = true, content = menu.menus[menu.currentSubMenu].data, closeLabel=Config.Labels["framework"]["MenuCloseLabel"], title = menu.menus[menu.currentSubMenu].title})
             else
                 menu.preventDefault = false
             end
@@ -77,7 +77,7 @@ local MenuTemplate = {
         end
     end,
     update = function(content, refresh)
-        SendNUIMessage({update = true, refresh = refresh or false, content = content, closeLabel=Config.Menu.CloseLabel})
+        SendNUIMessage({update = true, refresh = refresh or false, content = content, closeLabel=Config.Labels["framework"]["MenuCloseLabel"]})
     end,
     dialog = function(placeholder, cb)
         SendNUIMessage({
@@ -96,12 +96,12 @@ local MenuTemplate = {
             menu.menus[menu.currentSubMenu].data = content
             menu.menus[menu.currentSubMenu].cb = newcb or function()end
 
-            nuiMessage = {update = true, refresh = true, content = content, closeLabel=Config.Menu.CloseLabel, title = title}
+            nuiMessage = {update = true, refresh = true, content = content, closeLabel=Config.Labels["framework"]["MenuCloseLabel"], title = title}
         else
             menu.menus[menu.currentSubMenu].data = title
             menu.menus[menu.currentSubMenu].cb = content or function()end
 
-            nuiMessage = {update = true, refresh = true, content = title, closeLabel=Config.Menu.CloseLabel}
+            nuiMessage = {update = true, refresh = true, content = title, closeLabel=Config.Labels["framework"]["MenuCloseLabel"]}
         end
         
 
@@ -130,7 +130,7 @@ RegisterNUICallback("backsubmenu", function()
         Citizen.Wait(50)
 
         if not menu.preventDefault then
-            SendNUIMessage({update = true, refresh = true, content = menu.menus[menu.currentSubMenu].data, closeLabel=Config.Menu.CloseLabel, title = menu.menus[menu.currentSubMenu].title})
+            SendNUIMessage({update = true, refresh = true, content = menu.menus[menu.currentSubMenu].data, closeLabel=Config.Labels["framework"]["MenuCloseLabel"], title = menu.menus[menu.currentSubMenu].title})
         else
             menu.preventDefault = false
         end
