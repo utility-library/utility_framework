@@ -28,9 +28,9 @@ Config = {}
 
     Config.Database = {
         AutoTurnOnXampp = true,     -- If you have xampp the framework can automatically turn it on if is offline (with mysql service started)
-        CheckIfExistOnStart = false,
-        SaveNameInDb = true,
-        IfNewInstantSave = true     -- [TRUE]  When a new player connects it is immediately inserted in the table in the database (it makes 1 more query) 
+        CheckIfExistOnStart = true,
+        SaveNameInDb = false,
+        IfNewInstantSave = false    -- [TRUE]  When a new player connects it is immediately inserted in the table in the database (it makes 1 more query) 
                                     -- [FALSE] The player will be saved in the database only when it quits
                                     -- (if it is true or false for the framework it doesn't change anything, so it is your choice if you want it to save instantly or not)
     }
@@ -46,17 +46,10 @@ Config = {}
 
 --// Other
     Config.Group = {
-        ["steam:11000011525c3cc"] = "admin",
-        -- To remove
-        ["steam:11000011cd5a037"] = "admin",
-        ["steam:11000010b282d87"] = "admin",
-        ["steam:110000139cd9389"] = "admin",
-        ["steam:11000013f7e15db"] = "admin",
-        ["steam:11000011cda629a"] = "admin",
+        ["steam:11000011525c3cc"] = "admin", -- Example
     }
 
     Config.Addons = {
-        TriggerServerBasicProtection = true,  -- Encode any trigger to the server with a base64 name and add a randomly generated number to the first parameter which is encrypted in sha and is called TokenKey, if the name is wrong or the TokenKey is wrong or already used then the player will be banned.
         DisableExplosion             = true,  -- Disable explosion, only the client that created that explosion can see it (can prevent nuke of the server)
         PermanentObject              = true,  -- Since the "permanent_obj" addon also requires code that works on the framework to make it work you have to enable this setting
         Animation                    = {
@@ -64,10 +57,6 @@ Config = {}
             handsup = true,
             faint = true,
         }
-    }
-
-    Config.Menu = {
-        CloseLabel = "<fa-backspace> Back"
     }
 
     Config.Actived = {
@@ -91,7 +80,7 @@ Config = {}
         -- Other thing
         ItemData = true, -- You can set data for any item (aka item metadata)
         NoWeaponDrop = true, -- Disable the ped weapon drop
-        DisableVehicleRewards = false, -- Disable the reward from the vehicle
+        DisableVehicleRewards = true, -- Disable the reward from the vehicle
         Pvp = true, -- Pvp between players
         SaveArmour = true,
     }
@@ -106,62 +95,19 @@ Config = {}
             }
         },
         Configuration = {
-            ["police"] = {
-                name = "Polizia",
+            ["unemployed"] = {
+                name = "Unemployed",
                 grades = {
                     [1] = {
-                        label  = "Recluta",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [2] = {
-                        label  = "Agente",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [3] = {
-                        label  = "Caporale",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [4] = {
-                        label  = "Sergente",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [5] = {
-                        label  = "Tenente",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [6] = {
-                        label  = "Capitano",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [7] = {
-                        label  = "Vice capo",
-                        salary = 100,
-                        boss   = false
-                    },
-                    [8] = {
-                        label  = "Capo",
-                        salary = 100,
+                        label  = "",
+                        salary = 0,
                         boss   = false
                     },
                 }
             }
         },
-        Salaries = {
-            Interval = "5m", -- you can use: "s", "m" or "ms"
-
-            -- Primary job configuration
-            [1] = {
-                ["unemployed"] = {
-                    [1] = 100
-                }
-            }
-        }
+   
+        SalariesInterval = "5m", -- you can use: "s", "m" or "ms"
     }
 
     Config.Identity = {
@@ -371,6 +317,7 @@ Config = {}
             ['StartedIn']        = "Started in: %s ms",
             ['ConnectedUser']    = "User %s connected!",
             ['RecievedSalary']   = "You have recieved %d$ from the salary",
-            ['Maintenance']      = "The server is currently under maintenance 👨‍🔧"
+            ['Maintenance']      = "The server is currently under maintenance 👨‍🔧",
+            ['MenuCloseLabel']   = "<fa-backspace> Back"
         }
     }
