@@ -514,15 +514,15 @@
         Citizen.CreateThread(function()
             local Wait = nil
             local WaitMultiplier = 0
-            
-            if Config.Jobs.Salaries.Interval:find("ms") then
-                Wait = tonumber(Config.Jobs.Salaries.Interval:gsub("ms", ""))
+
+            if Config.Jobs.SalariesInterval:find("ms") then
+                Wait = tonumber(Config.Jobs.SalariesInterval:gsub("ms", ""))
                 WaitMultiplier = 0
-            elseif Config.Jobs.Salaries.Interval:find("s") then
-                Wait = tonumber(Config.Jobs.Salaries.Interval:gsub("s", ""))
+            elseif Config.Jobs.SalariesInterval:find("s") then
+                Wait = tonumber(Config.Jobs.SalariesInterval:gsub("s", ""))
                 WaitMultiplier = 1000
-            elseif Config.Jobs.Salaries.Interval:find("m") then
-                Wait = tonumber((Config.Jobs.Salaries.Interval:gsub("m", "")))
+            elseif Config.Jobs.SalariesInterval:find("m") then
+                Wait = tonumber((Config.Jobs.SalariesInterval:gsub("m", "")))
                 WaitMultiplier = 60000
             end
 
@@ -531,8 +531,8 @@
                 for k,v in pairs(Utility.PlayersData) do
                     if v.source ~= nil and GetPlayerPing(v.source) > 0 then
                         for i=1, #v.jobs do
-                            if Config.Jobs.Salaries[i][v.jobs[i].name] then
-                                local moneyToGive = Config.Jobs.Salaries[i][v.jobs[i].name][v.jobs[i].grade]
+                            if Config.Jobs.Configuration[v.jobs[i].name].grades[v.jobs[i].grade.id].salary then
+                                local moneyToGive = Config.Jobs.Configuration[v.jobs[i].name].grades[v.jobs[i].grade.id].salary
 
                                 v.accounts["bank"] = v.accounts["bank"] + (moneyToGive or 0)
                             end
