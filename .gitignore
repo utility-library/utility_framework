@@ -1,3 +1,4 @@
 cache/last_restart.utility
 logs/*.txt
+.tmp.driveupload
 config.lua
