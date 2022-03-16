@@ -11,9 +11,9 @@ Config.Addons = {
     
     -- Automatically manage the status (hunger, thirst)
     Status = {
-        active = true,
-        every  = "10s", -- Every time this time passes a quantity of percentage is removed from the state, you can use: "s", "m" or "ms"
-        remove = 0.001, -- This is the quantity that will be removed (percentage)
+        active = false,
+        every  = "1m", -- Every time this time passes a quantity of percentage is removed from the state, you can use: "s", "m" or "ms"
+        remove = 0.5, -- This is the quantity that will be removed (percentage)
 
         -- Here you can setup the default value (percentage) for any status (you can add status)
         default = {
@@ -23,7 +23,7 @@ Config.Addons = {
     },
 
     Weather = {
-        active = false,
+        active = true,
         realtime = true, -- Sync the hoster machine time with the server time
     },
 

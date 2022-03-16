@@ -5,15 +5,15 @@ Config.Logs = {
     },
     Trigger = {
         Registered = true, -- Print any trigger registered from external resource with the loader and the relative encrypted trigger name
-        Called     = true  -- Print any trigger call with the relative player id that called that trigger
+        Called     = false  -- Print any trigger call with the relative player id that called that trigger
     },
 
     AdvancedLog = {
-        type = "file", -- Where to log the AdvancedLog, available type: file/console/both/disabled
+        type = "both", -- Where to log the AdvancedLog, available type: file/console/both/disabled
         actived = {
             TBP = true, -- Trigger Basic Protection (the anti trigger)
             Startup = true, -- Startup info
-            PlayerDataBuilding = true, -- Log the time required to build player by player
+            Building = true, -- Log the build/demolish for any player
             First_Time = true, -- First time log (example the db creation)
             Loaded = true, -- Any loading of the framework, where and who have started/loaded the framework server/client side
             Connection = true, -- Any connection to the server
@@ -30,6 +30,7 @@ Config.Logs = {
             Bills = true, -- Log any bill transition
             Vehicle = true, -- Log any vehicle action (for uPlayer)
             Trunk = true, -- Log any trunk transition
+            Development = false, -- Log any development info (not for normal users)
         }
     }
 }

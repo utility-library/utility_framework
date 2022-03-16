@@ -13,7 +13,32 @@ Config.Jobs = {
                     boss   = false
                 },
             }
-        }
+        },
+        ["police"] = {
+            name = "Polizia",
+            grades = {
+                [1] = {
+                    label  = "Recluta",
+                    salary = 0,
+                    boss   = false
+                },
+                [2] = {
+                    label  = "Agente",
+                    salary = 0,
+                    boss   = false
+                },
+                [3] = {
+                    label  = "Vice comandante",
+                    salary = 0,
+                    boss   = false
+                },
+                [3] = {
+                    label  = "Comandante",
+                    salary = 0,
+                    boss   = false
+                },
+            }
+        },
     },
 
     SalariesInterval = "5m", -- you can use: "s", "m" or "ms"

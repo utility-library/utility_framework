@@ -6,7 +6,17 @@ Config.Labels = {
     },
 
     ["items"] = {
-        ["example"] = "example"
+        ["example"] = "Example works",
+        ["escaverme1"] = "Esca con verme",
+        ["escaverme2"] = "Esca con sanguisuga",
+        ["escapesce1"] = "Esca artificiale (Rossa)",
+        ["escapesce2"] = "Esca artificiale (Verde)",
+        ["cannadapesca"] = "Canna da pesca",
+        ["catalogo_pesca"] = "Pesca l'informazione (Libro)",
+    },
+
+    ["weapons"] = {
+        ["weapon_pistol"] = "Pistola"
     },
 
     ["license"] = {
@@ -100,5 +110,7 @@ Config.Labels = {
         ['MenuCloseLabel']   = "<fa-backspace> Back",
         ['Banned']           = "You are been automatically permanently banned from this server",
         ['DeletedOldLogs']   = "Logs files older than ^37 days^0 has been ^1deleted^0",
+
+        ["NoParameterDefined"] = "%s: The argument type of \"%s\" is %s, but need to be %s"
     }
 }

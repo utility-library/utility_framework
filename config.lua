@@ -3,19 +3,16 @@ Config = {}
 --// Basic
     Config.DefaultLanguage = "en" -- List of languages (https://developers.google.com/admin-sdk/directory/v1/languages)
     Config.Maintenance = false    -- Allow only player without the user group to join (so only admin or plus)
+    Config.AutoUpdateFXVersion = true
+    Config.GlobalSharedFunction = false -- Allow to use shared function in all script, not only in the script of the definition
+    Config.SendBetaDebug = true -- Send beta information to the developer to help improve the framework
 
-    -- Here you can setup and enable the autorestart of the server (if you dont have txadmin)
-    Config.AutoRestart = {
-        program = "FXServer.exe",   -- If you use a start.bat insert the name of the start file here
-        times = {},                 -- 24h format (leave {} to disable the autorestart feature)
-        timeout = 10,               -- This is the timeout after the server will restart after its turned off
-        deletecache = false,        -- Clean the cache during an autorestart (delete the cache folder from the main directory, can make damage!)
-        databasebackup = "utility"  -- Create a database backup in the DatabaseBackup folder in the desktop, insert your database name, works ONLY WITH XAMPP why it use the default xampp directory to connect with MySQL, leave "" to disable it
-    }
 
     Config.Database = {
-        CreateOnFirstStartup = true,    -- Create the database on the first startup of the server
+        CreateOnFirstStartup = false,    -- Create the database on the first startup of the server
         SaveNameInDb         = true,    -- Save the name of the player in the database
+        MaxDaysPlayer        = -1,      -- If a player doesn't login for this amount of days or plus he will be automatically deleted from the database (if you want to disable this function set it to -1)
+
         --IfNewInstantSave    = true    -- If the player is new, save the data instantly (not recommended)
                                         -- (if it is true or false for the framework it doesn't change anything, so it is your choice)
     }
@@ -31,9 +28,7 @@ Config = {}
             [1] = {"unemployed", 1}
         },
         Items = { -- Starting items/inventory
-            ["example"] = {
-                nodata = {[1] = 100}
-            }
+            {"example", 2}
 
 
             -- If you have item data disabled comment the line 68 and uncomment the 74
@@ -42,13 +37,21 @@ Config = {}
     }
 
     Config.Group = {
-        ["steam:11000011525c3cc"] = "admin", -- Example
+        ["steam:11000011525c3cc"] = "admin", -- xenos
+        ["steam:11000011cd5a037"] = "admin", -- markz
+        ["steam:11000013e487dbd"] = "admin", -- baffi
+        ["steam:110000116af8ccd"] = "admin", -- coliandro
+        ["steam:11000014525429a"] = "admin", -- si3mone
+        ["steam:110000110784a30"] = "admin", -- freez
+        ["steam:11000010b282d87"] = "admin", -- commander
+        ["steam:11000010e44d76f"] = "admin"
     }
 --// Other
 
 
     Config.TriggerBasicProtection = {
-        AutoBan = true -- If someone try to exploit our protection instantly ban it
+        AutoBan = true, -- If someone try to exploit our protection instantly ban it
+        Pos = 10 -- DONT TOUCH THIS [utfw_enc_pos]
     } 
 
     Config.Actived = {
@@ -70,13 +73,19 @@ Config = {}
         },
 
         -- Other thing
-        ItemData = true, -- You can set data for any item (aka item metadata) [UNDER DEVELOPING, SOCIETY DEPOSIT AND TRUNK DONT SAVE ITEMDATA]
-        NoWeaponDrop = false, -- Disable the ped weapon drop
-        DisableVehicleRewards = false, -- Disable the reward from the vehicle (+0.04 ms)
+        NoWeaponDrop = true, -- Disable the ped weapon drop
+
+        DisableSoftVehicleRewards = true, -- Disable rewards from any vehicles (soft mode)
+        DisableHardVehicleRewards = false, -- Disable rewards from any vehicles (hard mode, more precise but more weight +0.02ms)
+
         Pvp = true, -- Enable or disable the pvp system
         SaveArmour = true,
     }
 
+    Config.CustomEmitter = {
+        "Interaction",
+    }
+    
     Config.Accounts = {
         [1] = "cash",
         [2] = "bank",
@@ -97,4 +106,10 @@ Config = {}
         ["startup"]   = "[^4STARTUP^0] ",
         ["new"]       = "[^2NEW^0] ",
         ["old"]       = "[^3OLD^0] ",
+    }
+
+    Config.BlacklistedDrawable = {
+        ["torso_1"] = {
+            10
+        }
     }
