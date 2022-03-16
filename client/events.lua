@@ -5,6 +5,17 @@ AddEventHandler("Utility:Notification", function(msg)
     DrawNotification(false, true)
 end)
 
+RegisterNetEvent("Utility:ItemNotification")
+AddEventHandler("Utility:ItemNotification", function(name, text)
+    --print("Sending "..text)
+
+    SendNUIMessage({
+        item = true,
+        name = name,
+        changed = text
+    })
+end)
+
 RegisterNetEvent("Utility:ButtonNotification")
 AddEventHandler("Utility:ButtonNotification", function(msg, duration)
     for word in string.gmatch(msg, "{.*}") do msg = msg:gsub(word, Utility.Button[word]) end
@@ -26,4 +37,10 @@ AddEventHandler("Utility:SetClipboard", function(text)
             text = text 
         })
     end
+end)
+
+RegisterNetEvent("Utility:SwapModel")
+AddEventHandler("Utility:SwapModel", function(coords, model, newmodel)
+    --print("Swapping "..model.." to "..newmodel)
+    CreateModelSwap(coords, 1.0, model, newmodel, true)
 end)

@@ -19,16 +19,19 @@ Citizen.CreateThread(function()
         WaitMultiplier = 60000
     end
 
-    while true do
-        TriggerServerEvent("Utility:Status:Update")
-        Citizen.Wait(Wait * WaitMultiplier)
+    if Config.Addons.Status.active then
+        SetPlayerHealthRechargeMultiplier(PlayerId(), 0.0)
+
+        while true do
+            TriggerServerEvent("Utility:Status:Update")
+            Citizen.Wait(Wait * WaitMultiplier)
+        end
     end
 end)
 
 RegisterNetEvent("Utility:Status:RemoveHealth")
 AddEventHandler("Utility:Status:RemoveHealth", function()
-    local player = PlayerPedId()
-    local currentHealth = GetEntityHealth(player)
+    local currentHealth = GetEntityHealth(uPlayer.ped)
 
-    SetEntityHealth(player, currentHealth - 10.0)
+    SetEntityHealth(uPlayer.ped, math.floor(currentHealth - 10.0))
 end)

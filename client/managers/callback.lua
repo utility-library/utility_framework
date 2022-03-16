@@ -1,36 +1,30 @@
 enc = addon("encrypting")
 
 -- ServerCallback
-TriggerServerCallbackSync = function(name, _function, ...)
-    local handlerData = nil
-    local b64nameC = "Utility:External:"..enc.Utf8ToB64("Utility_Callback:"..name.."_l")
-    local b64nameS = "Utility:External:"..enc.Utf8ToB64("Utility_Callback:"..name)
+TriggerServerCallbackAsync = function(name, _function, ...)
+    local eventHandler = nil
+    local b64nameC = enc.Utf8ToB64(name.."_l")
 
     RegisterNetEvent(b64nameC)
-    handlerData = AddEventHandler(b64nameC, function(...)
-        _function(...)
-
-        RemoveEventHandler(handlerData)
+    eventHandler = AddEventHandler(b64nameC, function(data)
+        if type(_function) == "function" then _function(table.unpack(data)) end
+        RemoveEventHandler(eventHandler)
     end)
-
     
-    TriggerServerEvent(b64nameS, ...)
+    TriggerServerEvent(name, ...)
 end
 
-TriggerServerCallbackAsync = function(name, _function, ...)
+TriggerServerCallbackSync = function(name, ...)
     local p = promise.new()        
-    local handlerData = nil
-    local b64nameC = "Utility:External:"..enc.Utf8ToB64("Utility_Callback:"..name.."_l")
-    local b64nameS = "Utility:External:"..enc.Utf8ToB64("Utility_Callback:"..name)
+    local eventHandler = nil
+    local b64nameC = enc.Utf8ToB64(name.."_l")
 
     RegisterNetEvent(b64nameC)
-    handlerData = AddEventHandler(b64nameC, function(...)
-        _function(...)
-        RemoveEventHandler(handlerData)
-        p:resolve()
+    eventHandler = AddEventHandler(b64nameC, function(data)
+        RemoveEventHandler(eventHandler)
+        p:resolve(data)
     end)
 
-    TriggerServerEvent(b64nameS, ...)
-
-    Citizen.Await(p)
+    TriggerServerEvent(name, ...)
+    return table.unpack(Citizen.Await(p))
 end

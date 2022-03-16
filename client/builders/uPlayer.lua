@@ -11,61 +11,35 @@ local utfw = exports["utility_framework"]
 -- Exports for loader
     -- Money
         exports("GetMoney", function(type)
-            return {count = LocalPlayer.state.accounts[GetAccountIndex(type)], label = GetLabel("accounts", type) or type}
+            return {count = LocalPlayer.state.accounts[GetAccountIndex(type)], label = Config.Labels["accounts"][type] or type}
         end)
 
         exports("HaveMoneyQuantity", function(type, quantity)
             return (LocalPlayer.state.accounts[GetAccountIndex(type)] >= quantity)
         end)
     -- Item
-        exports("GetItem", function(name, itemid)
-            if Config.Actived.ItemData then
-                if not itemid then -- if there is a itemid defined
-                    itemid = "nodata"
-                end
-
-                print(name, itemid)
-                if Config.Inventory.type == "weight" then
-                    return {count = LocalPlayer.state.inventory[name][itemid][1], label = GetLabel("items", name) or name, weight = Config.Inventory.itemdata[name] or Config.Inventory.defaultitem, data = LocalPlayer.state.inventory[name][itemid][2], __type = "item"}
-                elseif Config.Inventory.type == "limit" then
-                    return {count = LocalPlayer.state.inventory[name][itemid][1], label = GetLabel("items", name) or name, limit = Config.Inventory.itemdata[name] or Config.Inventory.defaultitem, data = LocalPlayer.state.inventory[name][itemid][2], __type = "item"}
-                end
-            else
-                if Config.Inventory.type == "weight" then
-                    return {count = LocalPlayer.state.inventory[name], label = GetLabel("items", name) or name, weight = Config.Inventory.itemdata[name] or Config.Inventory.defaultitem, __type = "item"}
-                elseif Config.Inventory.type == "limit" then
-                    return {count = LocalPlayer.state.inventory[name], label = GetLabel("items", name) or name, limit = Config.Inventory.itemdata[name] or Config.Inventory.defaultitem, __type = "item"}
-                end
-            end
-        end)
-        exports("GetItemIds", function(name)
-            local ids = {}
-            
-            for k, v in pairs(LocalPlayer.state.inventory[name]) do
-                table.insert(ids, k)
-            end
-
-            return ids
+        exports("GetItem", function(name)
+            return GetItemInternal(name, LocalPlayer.state.inventory)
         end)
         exports("IsItemUsable", function(name, id)
-            if id then
-                return GlobalState["item_"..name..":"..id] or false
+            if name then
+                return GlobalState["item_"..name] or false
+            else
+                return false
             end
-
-            return GlobalState["item_"..name] or false
         end)
 
-        exports("UseItem", function(name, id)
-            if id then
-                TriggerServerEvent("Utility_Usable:"..name..":"..id)
-            else
+        exports("UseItem", function(name)
+            if exports["utility_framework"]:HaveItemQuantity(name, 1) then
                 TriggerServerEvent("Utility_Usable:"..name)
             end
         end)
         
-        exports("HaveItemQuantity", function(name, quantity)
-            if LocalPlayer.state.inventory[name] then
-                return (LocalPlayer.state.inventory[name] >= quantity)
+        exports("HaveItemQuantity", function(name, quantity, data)
+            local item = FindItem(name, data)
+
+            if item then
+                return (item[2] >= quantity)
             else
                 return nil
             end
@@ -84,8 +58,7 @@ local utfw = exports["utility_framework"]
             if IsWeaponValid(weaponhash) then
                 GiveWeaponToPed(PlayerPedId(), weaponhash, ammo, false, equipNow)
 
-                print("Utility:Weapon:AddWeapon", LocalPlayer.state.steam, (weapon:lower()):gsub("weapon_", ""), ammo)
-                TriggerServerEvent("Utility:Weapon:AddWeapon", LocalPlayer.state.steam, (weapon:lower()):gsub("weapon_", ""), ammo)
+                TriggerServerEvent("Utility:Weapon:AddWeapon", LocalPlayer.state.steam, weapon:lower(), ammo)
             else
                 return nil, "The weapons is invalid"
             end
@@ -96,25 +69,30 @@ local utfw = exports["utility_framework"]
 
             if IsWeaponValid(weaponhash) and HasPedGotWeapon(PlayerPedId(), weaponhash) then
                 RemoveWeaponFromPed(PlayerPedId(), GetHashKey(weapon))
-                TriggerServerEvent("Utility:Weapon:RemoveWeapon", LocalPlayer.state.steam, (weapon:lower()):gsub("weapon_", ""))
+                TriggerServerEvent("Utility:Weapon:RemoveWeapon", LocalPlayer.state.steam, weapon:lower())
             else
                 return nil, "The weapons is invalid or the ped not have the weapon"
             end
         end)
 
         exports("GetWeapons", function()
-            return LocalPlayer.state.other_info.weapon or {}
+            local r = {}
+            for k,v in pairs(LocalPlayer.state.other_info.weapon) do
+                r[UncompressWeapon(k)] = v
+            end
+
+            return r
         end)
 
         exports("HaveWeapon", function(name)
-            return LocalPlayer.state.other_info.weapon[name:lower()] or false
+            return LocalPlayer.state.other_info.weapon[CompressWeapon(name)] or false
         end)
     -- License
         exports("GetLicenses", function()      
             local _ = {}
             
             for k,v in pairs(LocalPlayer.state.other_info.license) do
-                _[k] = {name = v, label = GetLabel("license", v)}
+                _[k] = {name = v, label =  Config.Labels["license"][v]}
             end
 
             return _
@@ -140,9 +118,9 @@ local utfw = exports["utility_framework"]
             return LocalPlayer.state.other_info.bills or {}
         end)
 
-    -- IsDeath
-        exports("IsDeath", function()
-            return LocalPlayer.state.other_info.isdeath
+    -- IsDead
+        exports("IsDead", function()
+            return LocalPlayer.state.other_info.isdead
         end)
 
     -- Other info integration
@@ -165,18 +143,8 @@ local utfw = exports["utility_framework"]
             return Config.Jobs.Configuration[name]
         end)
     -- Vehicle
-        exports("IsPlateOwned", function(plate)
-            for i=1, #LocalPlayer.state.other_info.vehicles do
-                if LocalPlayer.state.other_info.vehicles[i] == plate then
-                    return true
-                end
-            end
-
-            return false
-        end)
-
         exports("GetComponents", function(plate)
-            return TriggerServerCallbackAsync("Utility:GetComponents", plate)
+            return TriggerServerCallbackSync("Utility:GetComponents", plate)
         end)
 
         exports("SpawnOwnedVehicle", function(plate, coords, network)
@@ -197,7 +165,7 @@ local utfw = exports["utility_framework"]
         end)
 
         exports("GetPlateData", function(plate)
-            return TriggerServerCallbackSync("Utility:uPlayer:GetPlateData", plate)
+            return TriggerServerCallbackAsync("Utility:uPlayer:GetPlateData", plate)
         end)
 
         exports("GetTrunk", function(plate)
@@ -205,6 +173,28 @@ local utfw = exports["utility_framework"]
         end)
 
         -- Config
+        local invoking = GetInvokingResource
+        local loaded = {}
+
+        local function ResourceExist(name)
+            for i = 0, GetNumResources(), 1 do
+                local res = GetResourceByFindIndex(i)
+                if res and res == name then
+                    return true
+                end
+            end
+
+            return false
+        end
+        
         exports("Config", function(field)
-            return Config[field] or Config
+            local res = invoking()
+
+            if res and not loaded[res] and ResourceExist(res) then
+                loaded[res] = true
+                return Config[field] or Config
+                print("[DEBUG] [TBP] Sending config to "..res)
+            else
+                print("[DEBUG] [TBP] Resource "..res.." as already requested the token")
+            end
         end)

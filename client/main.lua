@@ -30,13 +30,40 @@ Utility = {
 SetMaxWantedLevel(0)
 SetPlayerWantedLevelNoDrop(PlayerId(), 0, false)
 
-if Config.Actived.DisableVehicleRewards then
+if Config.Actived.DisableSoftVehicleRewards then
+    local RewardWeapons = {
+        "weapon_smg",
+        "weapon_carbinerifle",
+        "weapon_pumpshotgun",
+        "weapon_sniperrifle",
+        "weapon_pistol",
+    }
+
     Citizen.CreateThread(function()
-        local player = PlayerPedId()
+        local player = PlayerId()
 
         while true do
-            DisablePlayerVehicleRewards(PlayerId())
-            Citizen.Wait(5)
+            if uPlayer and uPlayer.loaded then
+                for i=1, #RewardWeapons do
+                    if HasPedGotWeapon(uPlayer.ped, GetHashKey(RewardWeapons[i])) then
+                        if not ut:HaveWeapon(RewardWeapons[i]) then
+                            RemoveWeaponFromPed(uPlayer.ped, GetHashKey(RewardWeapons[i]))
+                        end
+                    end
+                end
+            end
+            Citizen.Wait(1000)
+        end
+    end)
+end
+
+if Config.Actived.DisableHardVehicleRewards then
+    Citizen.CreateThread(function()
+        local player = PlayerId()
+
+        while true do
+            DisablePlayerVehicleRewards(player)
+            Citizen.Wait(0)
         end
     end)
 end
@@ -53,3 +80,29 @@ if Config.Actived.NoWeaponDrop then
         end
     end)
 end
+
+Citizen.CreateThread(function()
+    Citizen.Wait(100) -- Wait that NUI Load
+    SendNUIMessage({imgdir = Config.Inventory.NotificationImageBaseDirectory})
+end)
+
+RegisterCommand("enter_exitvehicle", function(source, args)
+    local veh = uPlayer.veh
+
+    Citizen.Wait(50)
+
+    if GetVehiclePedIsTryingToEnter(uPlayer.ped) == 0 then
+        TriggerEvent("Utility:Emitter:ExitVehicle", veh)
+    else
+        while GetVehiclePedIsTryingToEnter(uPlayer.ped) ~= 0 do
+            Citizen.Wait(100)
+        end
+    
+        veh = uPlayer.veh
+        if veh ~= 0 and veh ~= nil then
+            TriggerEvent("Utility:Emitter:EnterVehicle", uPlayer.veh)
+        end
+    end
+end, true)
+
+RegisterKeyMapping("enter_exitvehicle", "DONT TOUCH", "keyboard", "F")

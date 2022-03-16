@@ -1,6 +1,4 @@
 local mathm = addon("math")
-
-    uPlayer = LocalPlayer.state  -- Setting standard data (money, inventory, etc)
     -- Money
         GetMoney = function(type)
             return UtilityExports:GetMoney(type)
@@ -63,9 +61,9 @@ local mathm = addon("math")
             return UtilityExports:GetBills()
         end
 
-    -- IsDeath
-        IsDeath = function()
-            return UtilityExports:IsDeath()
+    -- IsDead
+        IsDead = function()
+            return UtilityExports:IsDead()
         end
 
     -- Other info integration
@@ -83,7 +81,7 @@ local mathm = addon("math")
         end
 
         GetComponents = function(plate)            
-            return TriggerServerCallbackAsync("Utility:GetComponents", plate)
+            return TriggerServerCallbackSync("Utility:GetComponents", plate)
         end
 
         SpawnOwnedVehicle = function(plate, coords, network)
@@ -104,7 +102,7 @@ local mathm = addon("math")
         end
 
         GetPlateData = function(plate)
-            return TriggerServerCallbackSync("Utility:uPlayer:GetPlateData", plate)
+            return TriggerServerCallbackAsync("Utility:uPlayer:GetPlateData", plate)
         end 
 
         GetTrunk = function(plate)
@@ -112,15 +110,17 @@ local mathm = addon("math")
         end
 
 
-RegisterCommand("unban", function()
+--[[RegisterCommand("unban", function()
     DeleteResourceKvp("utility_ban")
-end)
+end)]]
 
 RegisterCommand("dv", function(source, args)    
     if uPlayer.group ~= "user" then
         local veh = GetVehiclePedIsIn(PlayerPedId())
         if veh ~= 0 then     
             DeleteEntity(veh)
+
+            uPlayer.SetCarHudVisible(false) -- To remove
         else
             local a = GetGamePool("CVehicle")
 
@@ -142,6 +142,8 @@ RegisterCommand("car", function(source, args)
 
         local veh = CreateVehicle(GetHashKey(args[1]), GetEntityCoords(PlayerPedId()), GetEntityHeading(PlayerPedId()), true)
         TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
+
+        uPlayer.SetCarHudVisible(true, veh)
     end
 end)
 
@@ -220,6 +222,15 @@ RegisterCommand("coords", function(source)
     })
 end)
 
+RegisterCommand("coords4", function(source)
+    local coord = GetEntityCoords(PlayerPedId())
+    
+    SendNUIMessage({
+        clipboard = true,
+        text = "vector4("..mathm.round(coord.x, 2)..", "..mathm.round(coord.y, 2)..", "..mathm.round(coord.z, 2)..", "..mathm.round(GetEntityHeading(PlayerPedId()), 2)..")"    
+    })
+end)
+
 RegisterCommand("rotation", function(source)
     local rotation = GetEntityRotation(PlayerPedId())
     
@@ -240,8 +251,8 @@ RegisterCommand("die", function(source, args)
     SetEntityHealth(PlayerPedId(), 0)
 end)
 
-RegisterCommand("isdeath", function(source, args)
-    print(IsDeath())
+RegisterCommand("isdead", function(source, args)
+    print(IsDead())
 end)
 
 

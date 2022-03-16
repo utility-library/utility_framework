@@ -6,7 +6,7 @@ local self = {
         }
 
         cooldownClasses.on = function() 
-            local ended = ((GetGameTimer() - cooldownClasses.timer) < 0)
+            local ended = (cooldownClasses.time() > time)
 
             if ended then
                 cooldownClasses.timer = GetGameTimer()

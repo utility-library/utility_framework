@@ -1,7 +1,13 @@
+local invoking = GetInvokingResource
+local data, loaded = nil, {}
+local pos = Config.TriggerBasicProtection.Pos
+Config.TriggerBasicProtection.Pos = nil
+
+
 Citizen.CreateThread(function()
-    TriggerServerCallbackSync("Utility:GetToken", function(steam, d)
-        Utility.Data = tostring(d):gsub('..', function(c) return string.char(tonumber(c, 16)) end)
-    
+    TriggerServerCallbackAsync("Utility:GetToken", function(steam, d)
+        data = tostring(d):gsub('.', function(c) return c - pos end)
+
         if Config.Actived.Pvp then
             SetCanAttackFriendly(PlayerPedId(), true, false)
             NetworkSetFriendlyFireOption(true)
@@ -10,23 +16,33 @@ Citizen.CreateThread(function()
     end)
 end)
 
+local function ResourceExist(name)
+    for i = 0, GetNumResources(), 1 do
+        local res = GetResourceByFindIndex(i)
+        if res and res == name then
+            return true
+        end
+    end
+
+    return false
+end
+
 RegisterNetEvent("Utility:RequestBasicData")
 AddEventHandler("Utility:RequestBasicData", function(cb)
-    if not Utility.Loaded then
-        Utility.Loaded = {}
-    end
-    local res = GetInvokingResource()
+    local res = invoking()
 
-    if res and not Utility.Loaded[res] then
-        Utility.Loaded[res] = true
+    if res and not loaded[res] and ResourceExist(res) then
+        loaded[res] = true
 
-        while Utility.Data == nil do
+        while data == nil do
             Citizen.Wait(1)
         end
-        cb(Utility.Data)
+
+        local cdata = data:gsub(".", function(c) return math.floor(c + pos) end)
+        cb(cdata)
         print("[DEBUG] [TBP] Sending token to "..res)
     else
         print("[DEBUG] [TBP] Resource "..res.." as already requested the token")
     end
 end)
-AddEventHandler("onResourceStop", function(res) if Utility.Loaded then Utility.Loaded[res] = nil end end)
+AddEventHandler("onResourceStop", function(res) if loaded then loaded[res] = nil end end)

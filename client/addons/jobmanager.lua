@@ -1,4 +1,4 @@
-local loaded = false
+local loaded = {}
 local job
 
 local self = {
@@ -9,18 +9,20 @@ local self = {
 }
 
 function JobChange(old, new)
-    if new[1].name == job then
-        if not loaded then
-            loaded = true
-            if LoadJob then
-                LoadJob()
+    for i=1, #job do
+        if new[1].name == job[i] then
+            if not loaded[i] then
+                loaded[i] = true
+                if LoadJob then
+                    LoadJob(job[i])
+                end
             end
-        end
-    else
-        if loaded then
-            loaded = false
-            if UnLoadJob then
-                UnLoadJob()
+        else
+            if loaded[i] then
+                loaded[i] = false
+                if UnLoadJob then
+                    UnLoadJob(job[i])
+                end
             end
         end
     end
@@ -28,11 +30,18 @@ end
 
 Citizen.CreateThread(function()
     Citizen.Wait(500)
+    while uPlayer == nil do
+        Citizen.Wait(1)
+    end
 
-    if uPlayer.jobs[1].name == job then
-        loaded = true
-        if LoadJob then
-            LoadJob()
+    for i=1, #job do
+        --print(uPlayer.jobs[1].name, job[i])
+        if uPlayer.jobs[1].name == job[i] then
+            --print("Have job")
+            loaded[i] = true
+            if LoadJob then
+                LoadJob(job[i])
+            end
         end
     end
 end)

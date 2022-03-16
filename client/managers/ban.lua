@@ -1,5 +1,5 @@
 Citizen.CreateThreadNow(function()
-    --DeleteResourceKvp("utility_ban")
+    DeleteResourceKvp("utility_ban")
     local bans = GetResourceKvpString("utility_ban")
 
     if bans then

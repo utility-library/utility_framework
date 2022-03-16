@@ -1,4 +1,4 @@
-RegisterNetEvent("Utility:Revive", function()
+RegisterNetEvent("Utility:Emitter:OnRevive", function()
     if GetInvokingResource() == nil then -- If is called from the server (yes the name of the resource is return ONLY if is called from the side where was created, isolated injector probably can trigger it anyway)
         local player = PlayerPedId()
         NetworkResurrectLocalPlayer(GetEntityCoords(player), GetEntityHeading(player), true, false)

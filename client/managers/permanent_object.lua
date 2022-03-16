@@ -1,10 +1,12 @@
 if Config.Addons.PermanentObject then
     Citizen.CreateThread(function()
         -- There is a server check that send the callback only if is the first client that try to generate the entity
-        TriggerServerCallbackSync("Utility:PermObj:GetSavedData", function(data)
+        local data = TriggerServerCallbackSync("Utility:PermObj:GetSavedData")
+
+        if data ~= nil then
             for i=1, #data do
                 data[i].coords = json.decode(data[i].coords)
-
+    
                 local obj = CreateObject(data[i].model, vector3(tonumber(data[i].coords[1]), tonumber(data[i].coords[2]), tonumber(data[i].coords[3])), true)  
                 
                 SetEntityAsMissionEntity(obj, true, true)
@@ -15,7 +17,7 @@ if Config.Addons.PermanentObject then
                 SetNetworkIdCanMigrate(NetId, true)
                 NetworkSetNetworkIdDynamic(NetId, false)
             end
-        end)
+        end
     end)
 end
 
