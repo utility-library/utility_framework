@@ -17,10 +17,11 @@ GenerateQueryFromTable = function(_type, uPlayer, coords)
             if next(v) == nil then
                 other_info[k] = nil
             end
-        elseif k == "isdeath" and v == false then
+        elseif k == "isdead" and v == false then
             other_info[k] = nil
         end
     end
+    
     tab.other_info = other_info
 
     if Config.Actived.Identity then 
@@ -29,9 +30,13 @@ GenerateQueryFromTable = function(_type, uPlayer, coords)
     if Config.Actived.Jobs then 
         local compressed_jobs = {}
 
-        for i=1, #uPlayer.jobs do table.insert(compressed_jobs, {[1] = uPlayer.jobs[i].name, [2] = uPlayer.jobs[i].grade.id, [3] = uPlayer.jobs[i].onduty}) end
-        tab.jobs = compressed_jobs
+        for i=1, #uPlayer.jobs do 
+            print(json.encode(uPlayer.jobs))
+            table.insert(compressed_jobs, {[1] = uPlayer.jobs[i].name, [2] = uPlayer.jobs[i].grade and uPlayer.jobs[i].grade.id or 1, [3] = uPlayer.jobs[i].onduty}) 
+        end
 
+        --print(json.encode(compressed_jobs))
+        tab.jobs = compressed_jobs
     end
     if Config.Actived.Accounts then 
         tab.accounts = uPlayer.accounts
@@ -72,10 +77,38 @@ GenerateQueryFromTable = function(_type, uPlayer, coords)
                 params[k] = v
             end
             
-            set = set.." "..k.." = :"..k.."," 
+            if k ~= "steam" then
+                set = set.." "..k.." = :"..k.."," 
+            end
         end
 
-        local query = 'UPDATE users SET'..set:sub(1, -2)..' WHERE steam = :steam'
+        local last_quit = os.date("%Y-%m-%d")
+        params["last_quit"] = last_quit
+
+        local query = 'UPDATE users SET '..set..' last_quit = :last_quit WHERE steam = :steam'
+
         return query, params
     end
 end
+
+AddEventHandler('onResourceStop', function(resourceName)
+    if (GetCurrentResourceName() ~= resourceName) then
+        return
+    end
+    
+    for _, v in ipairs(GetPlayers()) do
+        local uPlayer = GetPlayer(tonumber(v))
+
+        if uPlayer and uPlayer.source then
+            local coords = GetEntityCoords(GetPlayerPed(uPlayer.source))
+    
+            if uPlayer.IsNew then
+                local query, params = GenerateQueryFromTable("INSERT", uPlayer, coords)
+                MySQL.Sync.fetchAll(query, params)
+            else
+                local query, params = GenerateQueryFromTable("UPDATE", uPlayer, coords)
+                MySQL.Sync.fetchAll(query, params)
+            end
+        end
+    end
+end)

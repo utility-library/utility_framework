@@ -4,11 +4,16 @@ AddEventHandler("Utility:Loaded", function()
     local source = source
     local steam = GetPlayerIdentifier(source, 0)
 
+    --print(Utility.DatabaseLoaded)
     while not Utility.DatabaseLoaded do
         Citizen.Wait(1)
     end
     
     local uPlayer = GetPlayer(steam)
+
+    if not uPlayer then
+        uPlayer = GeneratePlayer(source, steam)
+    end
 
     if uPlayer.__type ~= "uPlayer" then 
         uPlayer:Build(source)
@@ -16,10 +21,9 @@ AddEventHandler("Utility:Loaded", function()
 
     uPlayer:ClientBuild(source)
     for k,v in pairs(Utility.PlayersData[steam]) do
+        --print("Setting "..tostring(k).." to "..tostring(v).." for "..tostring(source))
         Player(source).state[k] = v
     end
-
-    print("Loaded player "..steam)
 end)
 
 
@@ -94,7 +98,7 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
             if not Utility.PlayersData[steam] then
                 local uPlayer = GeneratePlayer(_source, steam)
                 uPlayer:Build()
-                
+
                 -- Log
                 if Config.Logs.Connection.NewUser then 
                     print(Config.PrintType["new"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["ConnectedUser"]):format(uPlayer.name)) 

@@ -1,39 +1,11 @@
 local function BuildTrunk(self)
-    if Config.Inventory.type == "weight" then
-        self.maxWeight = Config.Inventory.maxVehicles[self.data.class] or Config.Inventory.maxVehicles.default
+    if Config.Inventory.Type == "weight" then
+        self.maxWeight = Config.Inventory.MaxClassWeight[self.data.class] or Config.Inventory.DefaultMaxClassWeight
         self.weight = 0
     
         for k,v in pairs(self.trunk) do
-            if Config.Actived.ItemData then
-                for _, v in pairs(v) do
-                    local _weight = (Config.Inventory.itemdata[k] or Config.Inventory.defaultitem)
-                    self.trunk[k][_] = v
-                    self.weight = self.weight + (_weight * v[1])
-                end
-            else
-                local _weight = (Config.Inventory.itemdata[k] or Config.Inventory.defaultitem)
-
-                self.trunk[k] = tonumber(v)
-                self.weight = self.weight + (_weight * v)
-            end
-        end
-    elseif Config.Inventory.type == "limit" then
-        self.limit = {}
-
-        for k,v in pairs(self.trunk) do
-            if Config.Actived.ItemData then
-                for _, v in pairs(v) do
-                    -- k = item name
-                    -- _ = id of item
-                    -- v = quantity and data
-                    
-                    self.trunk[k][_] = v
-                    self.limit[k] = tonumber(v[1])
-                end
-            else
-                self.trunk[k] = tonumber(v)
-                self.limit[k] = tonumber(v)
-            end
+            local _weight = (Config.Inventory.ItemWeight[k] or Config.Inventory.DefaultItemWeight)
+            self.weight = self.weight + (_weight * v[2])
         end
     end
 
@@ -41,149 +13,102 @@ local function BuildTrunk(self)
 end
 
 local function BuildFunctions(self)
+    --[[
+        Check if a id is owner of the vehicle
+
+        id number = id of the player
+
+        return [boolean] = True if the player is owner
+    ]]
+
     self.IsOwner = function(id)
         local steam = GetPlayerIdentifier(id, 0)
-        
-        for i=1, #Utility.PlayersData[steam].other_info.vehicles do
-            if Utility.PlayersData[steam].other_info.vehicles[i] == plate then
-                return true
-            end
-        end
-
-        return false
+        return self.owner == steam
     end
 
+    --[[
+        Get all components of the vehicle
+
+        return [table] = Table of components
+    ]]
     self.GetComponents = function()
         return self.data
     end
 
-    self.SetComponents = function(components)
-        oxmysql:executeSync('UPDATE vehicles SET data = :data WHERE plate = :plate', {
-            plate = self.plate,
-            data  = json.encode(components),
-        })
+    --[[
+        Set components of the vehicle
 
+        components table = Table of components
+    ]]
+    self.SetComponents = function(components)
         self.data = components
     end
 
-    self.AddItem = function(item, quantity, id, data)
-        if Config.Actived.ItemData then
-            if id == nil then id = "nodata" end -- Id check
-            if not self.trunk[item] then self.trunk[item] = {} end -- Item exist check
-            
-            if not self.trunk[item][id] then -- If item dont exist
-                self.trunk[item][id] = {}
-                self.trunk[item][id][1] = tonumber(quantity)
+    --[[
+        Add a item to the vehicle
 
-                if data.__type == "item" then
-                    self.trunk[item][id][2] = data.data
-                else
-                    self.trunk[item][id][2] = data
-                end
-            else
-                -- Item already exist (adding new quantity)
-                self.trunk[item][id][1] = self.trunk[item][id][1] + tonumber(quantity)
-            end
-            Log("Trunk", "Added "..quantity.." "..item.." ["..id.."] to "..self.plate)
-        else
-            if not self.trunk[item] then -- If dont exist create it with the quantity
-                self.trunk[item] = quantity
-            else -- Else if exist then add the quantity
-                self.trunk[item] = self.trunk[item] + quantity 
-            end
-            Log("Trunk", "Added "..quantity.." "..item.." to "..self.plate)
-        end
-
-        -- Weight calculation
-        if Config.Inventory.type == "weight" then
-            local max = Config.Inventory.itemdata[item] or Config.Inventory.defaultitem
-            if self.weight then
-                self.weight = self.weight + (max * quantity)
-            else
-                self.weight = (max * quantity)
-            end     
-        elseif Config.Inventory.type == "limit" then   
-            if self.limit[item] then
-                self.limit[item] = self.limit[item] + quantity
-            else
-                self.limit[item] = quantity
-            end
-        end
+        name string = Name of the item
+        quantity number = Quantity of the item to add
+        data any [-] = The data of the item
+    ]]
+    self.AddItem = function(name, quantity, data)
+        AddItemInternal(name, quantity, data, self)
     end
 
-    self.RemoveItem = function(item, quantity, id)
-        if self.trunk[item] then -- Item exist in the self.trunk
-            if Config.Actived.ItemData then
-                if id == nil then id = "nodata" end -- Id check
-                
-                if self.trunk[item][id] then -- ID exist in the item    
-                    -- Item already exist (removing quantity)
-                    self.trunk[item][id][1] = self.trunk[item][id][1] - tonumber(quantity)
-                    
-                    if self.trunk[item][id][1] <= 0 then
-                        self.trunk[item][id] = nil
-                    end
+    --[[
+        Remove a item from the vehicle
 
-                    -- Weight calculation
-                    if Config.Inventory.type == "weight" then
-                        local max = Config.Inventory.itemdata[item] or Config.Inventory.defaultitem
-                        if self.weight then
-                            self.weight = self.weight + (max * quantity)
-                        else
-                            self.weight = (max * quantity)
-                        end     
-                    elseif Config.Inventory.type == "limit" then   
-                        if self.limit[item] then
-                            self.limit[item] = self.limit[item] + quantity
-                        else
-                            self.limit[item] = quantity
-                        end
-                    end                     
-
-                    Log("Trunk", "Removed "..quantity.." "..item.." ["..id.."] from "..self.plate)
-                end
-            else
-                self.trunk[item] = self.trunk[item] - quantity 
-
-                if self.trunk[item] <= 0 then
-                    self.trunk[item] = nil
-                end
-
-                -- Weight calculation
-                if Config.Inventory.type == "weight" then
-                    local max = (Config.Inventory.itemdata[item] or Config.Inventory.defaultitem)
-                    if self.weight then
-                        self.weight = self.weight + (max * quantity)
-                    else
-                        self.weight = (max * quantity)
-                    end     
-                elseif Config.Inventory.type == "limit" then   
-                    if self.limit[item] then
-                        self.limit[item] = self.limit[item] + quantity
-                    else
-                        self.limit[item] = quantity
-                    end
-                end 
-                Log("Trunk", "Removed "..quantity.." "..item.." from "..self.plate)
-            end
-        end
+        item string = Name of the item
+        quantity number = Quantity of the item to remove
+    ]]
+    self.RemoveItem = function(item, quantity, data)
+        RemoveItemInternal(item, quantity, data, self)
     end
 
+    --[[
+        Get info from item
+
+        name string = The name of the item
+
+        return [table] = A table with the childs: `count`, `label`, `data` and `weight` or `limit`  
+    ]]
+    self.GetItem = function(name, data)
+        return GetItemInternal(name, data, self.trunk)
+    end
+
+    --[[
+        Check if the vehicle have an item quantity
+
+        name string = The name of the item
+        quantity number = The quantity to check
+
+        return [boolean] = True if the item is usable, false if item isnt usable
+    ]]
+    self.HaveItemQuantity = function(name, quantity, data)
+        return HaveItemQuantityInternal(name, quantity, data, self.trunk)
+    end
+    
+    --[[
+        Check if the vehicle can carry the item quantity
+
+        item string = Name of the item
+        quantity number = Quantity of the item
+
+        return [boolean] = True if the vehicle can carry the item
+    ]]
     self.CanCarryItem = function(item, quantity)
-        local max = Config.Inventory.itemdata[item] or Config.Inventory.defaultitem
+        local max = Config.Inventory.ItemWeight[item] or Config.Inventory.DefaultItemWeight
         
-        if Config.Inventory.type == "weight" then
+        if Config.Inventory.Type == "weight" then
             if (self.weight + (max * quantity)) > self.maxWeight then
                 return false
             else
                 return true
             end
-        elseif Config.Inventory.type == "limit" then
-            if not self.limit[name] then
-                return true
-            end
+        elseif Config.Inventory.Type == "limit" then
+            local item = FindItem(item, self.trunk)
 
-            if (self.limit[name] + quantity) <= max then
+            if (item[2] + quantity) <= max then
                 return true
             else
                 return false
@@ -191,21 +116,23 @@ local function BuildFunctions(self)
         end
     end
 
-    self.SaveTrunk = function()
-        oxmysql:executeSync('UPDATE vehicles SET trunk = :trunk WHERE plate = :plate', {
-            plate = self.plate,
-            trunk  = json.encode(self.trunk),
-        })
-    end
-
     return self
 end
 
+
 CreateVehicle = function(self)
-    self.data  = json.decode(self.data)
-    self.trunk = json.decode(self.trunk)
+    self.owner = "steam:110000"..self.owner
+
+    if type(self.data) == "string" then
+        self.data = json.decode(self.data)
+    end
+    if type(self.trunk) == "string" then
+        self.trunk = json.decode(self.trunk)
+    end
 
     self.Build = function()
+        Log("Building", "Vehicle "..self.plate.." builded")
+
         self.__type = "uVehicle"
         self = BuildTrunk(self)
         self = BuildFunctions(self)
@@ -229,11 +156,19 @@ CreateVehicle = function(self)
 end
 
 GetVehicle = function(plate)
+    if not plate or Utility.VehiclesData[plate] == nil then
+        error("GetVehicle: no valid vehicle plate provided, this uEntity works only with owned vehicles")
+    end
+
+    if not Utility.VehiclesData[plate]:IsBuilded() then
+        Utility.VehiclesData[plate]:Build()
+    end
+
     return Utility.VehiclesData[plate]
 end
 
 LoadVehicles = function()
-    local vehicles = oxmysql:fetchSync('SELECT plate, data, trunk FROM vehicles', {})
+    local vehicles = MySQL.Sync.fetchAll('SELECT owner, plate, data, trunk FROM vehicles', {})
 
     if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
 

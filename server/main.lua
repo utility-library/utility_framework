@@ -8,15 +8,11 @@ Citizen.CreateThreadNow(function()
 
     local vehicle = LoadVehicles()
     local player  = LoadPlayers()
-    local society = LoadVehicles()
+    local society = LoadSociety()
     
     -- Loaded Message
     StartupMessage(player, society, vehicle)
     LoadBans()
-
-    -- For function _ auto translation in the server loader
-    GlobalState.TranslationCache = {}
-    GlobalState.SharedFunction = {}
     return
 end)
 

@@ -1,11 +1,11 @@
 local self = {
-    create = function(time)
+    start = function(time)
         -- Classes
         local cooldownClasses = {
             timer = os.clock()*1000
         }
 
-        cooldownClasses.ended = function() 
+        cooldownClasses.on = function() 
             local ended = cooldownClasses.cooldown() > time
 
             if ended then
@@ -15,7 +15,7 @@ local self = {
             return ended
         end
 
-        cooldownClasses.cooldown = function()
+        cooldownClasses.time = function()
             return ((os.clock()*1000) - cooldownClasses.timer)
         end
         

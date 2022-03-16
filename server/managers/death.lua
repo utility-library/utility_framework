@@ -24,6 +24,6 @@ AddEventHandler("Utility:SetDeath", function(steam, death, info)
         oio.death = oio.death + 1
     end
     
-    oio.isdeath = death
+    oio.isdead = death
     player.other_info = oio
 end)

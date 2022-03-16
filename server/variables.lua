@@ -25,3 +25,7 @@ Utility = {
     -- TBP Token (Trigger Basic Protection)
     Token = math.random(0, 999999999999999999)
 }
+
+-- For function _ auto translation in the server loader
+GlobalState.TranslationCache = {}
+GlobalState.SharedFunction = {}

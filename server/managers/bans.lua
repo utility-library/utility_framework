@@ -1,5 +1,5 @@
 LoadBans = function()
-    oxmysql:fetchSync('SELECT data, token FROM bans', {}, function(bans) Utility.Bans = bans end)
+    MySQL.Sync.fetchAll('SELECT data, token FROM bans', {}, function(bans) Utility.Bans = bans end)
 end
 
 -- KVP Ban
