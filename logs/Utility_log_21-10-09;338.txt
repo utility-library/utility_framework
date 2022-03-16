@@ -1,7 +1,0 @@
-[    Time] [CPUsec] [  Position] | [Message]
---------------------------------------------
-[12:54:37] [  1180] [       TBP] | Token generated => "222503662109375008"
-[12:54:37] [  1180] [   Startup] | Loaded 7 player and 2 society in 25ms
-[12:54:37] [  1180] [      Main] | Loaded the client framework for the resource [utility_framework] [ID:1]
-[12:54:37] [  1180] [      Main] | Old user XenoS connected
-[12:54:38] [  1181] [      Main] | Given salary to all players, next salary between 300000ms
