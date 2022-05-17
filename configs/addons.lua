@@ -1,7 +1,6 @@
 Config.Addons = {
     DisableExplosion = true,  -- Disable all explosion, only the client that created that explosion can see it (can prevent nuke of the server)
-    PermanentObject  = true,  -- Allow you to have a addon that automatically manage permanent object, simply save the object coords in the database and recreate the object for you, Since the "permanent_obj" addon also requires code that works on the framework to make it work you have to enable this setting
-    
+        
     -- Basic RP animation (control can be modified in client/internal_addons/basic_animation.lua at the bottom line)
     Animation = {
         crouch  = true, -- Default Key: Left Ctrl

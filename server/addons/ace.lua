@@ -9,12 +9,14 @@ type = function(var)
     return old_type(var)
 end
 
+--[[
 local old_ExecuteCommand = ExecuteCommand
 
 ExecuteCommand = function(command)
     print("[^4ACE^0] Executing command: "..command)
     old_ExecuteCommand(command)
 end
+]]
 
 local self = {
     CreateGroup = function(name, permission)

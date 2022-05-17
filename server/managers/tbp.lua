@@ -1,20 +1,42 @@
 local BlacklistedSources = {}
-RegisterServerCallback("Utility:GetToken", function()
+local Keys = {}
+
+Citizen.CreateThread(function()
+    exports["utility_framework"]:GenerateKeys(function(public, private)
+        Keys.public = public
+        Keys.private = private
+    
+        Log("Development", "Generated RSA keys for TBP (Public: "..(Keys.public:gsub("\n", ""))..", Private: "..(Keys.private:gsub("\n", ""))..")")
+    end)
+end)
+
+RegisterServerCallback("Utility:GetToken", function(clientPublicKey)
+    local source = source
+
     if not BlacklistedSources[source] then
-        return GetPlayerIdentifier(source, 0), tostring(Utility.Token):gsub('.', function(c) 
-            return c + Config.TriggerBasicProtection.Pos
-        end)
+        BlacklistedSources[source] = true
+
+        local p = promise:new()
+        exports["utility_framework"]:Encrypt(clientPublicKey, Utility.Token, function(enc) p:resolve(enc) end)
+        local enc = Citizen.Await(p)
+        
+        Log("Development", "Encrypted token with the client public key of "..GetPlayerName(source).." ("..source.."), the result is: "..enc)
+        return GetuPlayerIdentifier(source), enc
     else
         -- Already getted the token
+        Log("TBP", "Source "..source.." tried to get the token that was already getted, probably a executor")
         return nil
     end
 end)
 
-RegisterServerEvent("Utility:ShareToken")
-AddEventHandler("Utility:ShareToken", function(cb)
-    local res = GetInvokingResource()
+RegisterServerEvent("Utility:RequestPublicKey")
+AddEventHandler("Utility:RequestPublicKey", function()
+    TriggerClientEvent("Utility:RequestPublicKey", source, Keys.public)
+end)
 
-    if res then
-        cb(Utility.Token)
+exports("GetServerToken", function()
+    if GetInvokingResource() then
+        Log("Development", "The server API requested the private and the token")
+        return Keys.private, Utility.Token
     end
 end)

@@ -1,47 +1,54 @@
 local PermObj = {
-    Loaded = false
+    Objects = GetResourceKvpString("utility_perm_objs"),
+    ObjectsPool = {}
 }
 
+if PermObj.Objects then
+    PermObj.Objects = json.decode(PermObj.Objects)
+else
+    PermObj.Objects = {}
+end
+
 Citizen.CreateThread(function()
-    PermObj.obj = MySQL.Sync.fetchAll('SELECT model, coords FROM objects', {})
+    for i=1, #PermObj.Objects do
+        local object = PermObj.Objects[i]
+        local obj = CreateObject(object.model, object.x, object.y, object.z, true)
 
-    PermObj.Loaded = true
-end)
-
-RegisterServerEvent("Utility:PermObj:SetEntityPermanent")
-AddEventHandler("Utility:PermObj:SetEntityPermanent", function(data)
-    if data.permanent then
-        MySQL.Sync.fetchAll('INSERT INTO objects (model, coords) VALUES (:model, :coords)', {
-            model = data.model,
-            coords = json.encode({[1] = tonumber(data.x), [2] = tonumber(data.y), [3] = tonumber(data.z)})
-        })
-
-        table.insert(PermObj.obj, {
-            model = data.model,
-            coords = json.encode({[1] = tonumber(data.x), [2] = tonumber(data.y), [3] = tonumber(data.z)})
-        })
-    else
-        MySQL.Sync.fetchAll('DELETE FROM objects WHERE model = :model AND coords = :coords', {
-            model = data.model,
-            coords = json.encode({[1] = tonumber(data.x), [2] = tonumber(data.y), [3] = tonumber(data.z)})
-        })
-
-        for i=1, #PermObj.obj do
-            if PermObj.obj[i].model == data.model and PermObj.obj[i].coords == json.encode({[1] = tonumber(data.x), [2] = tonumber(data.y), [3] = tonumber(data.z)}) then
-                table.remove(PermObj.obj, i)
-            end
+        while not DoesEntityExist(obj) do
+            Citizen.Wait(1)
         end
+
+        PermObj.ObjectsPool[NetworkGetNetworkIdFromEntity(obj)] = obj
     end
 end)
 
+RegisterServerCallback("Utility:CreatePermanentObject", function(model, x, y, z, network, netMissionEntity, doorFlag)
+    if type(x) == "vector3" then
+        x = x.x
+        y = x.y
+        z = x.z
+        network = y
+        netMissionEntity = z
+        doorFlag = network
+    end
 
-RegisterServerCallback("Utility:PermObj:GetSavedData", function()
-    --print("[permanent_object] Called from "..source)
+    x = tonumber(x)
+    y = tonumber(y)
+    z = tonumber(z)
+    
+    local obj = CreateObject(model, x, y, z, network, netMissionEntity, doorFlag)
+    table.insert(PermObj.Objects, {model = model, x = x, y = y, z = z})
 
-    while not PermObj.Loaded do
+    while not DoesEntityExist(obj) do
         Citizen.Wait(1)
     end
 
-    --print("[permanent_object] Calling return")
-    return PermObj.obj
+    return NetworkGetNetworkIdFromEntity(obj)
+end)
+
+RegisterServerEvent("Utility:DeletePermanentObject", function(netId)
+    if PermObj.ObjectsPool[netId] then
+        DeleteEntity(PermObj.ObjectsPool[netId])
+        PermObj.ObjectsPool[netId] = nil
+    end
 end)

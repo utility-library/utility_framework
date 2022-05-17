@@ -1,4 +1,7 @@
-Clothes = ConvertKvp("utility_skin")
+local server_identifier = LoadResourceFile("utility_framework", "files/server-identifier.utility") 
+local kvp = Config.GlobalSkin and "utility_skin" or "utility_skin:"..server_identifier
+
+Clothes = ConvertKvp(kvp)
 
 Components = {
     {label = GetSkinLabel("face"), name = "face", value = 0, min = 0},
@@ -104,7 +107,7 @@ if Clothes == nil or next(Clothes) == nil then
         Clothes[Components[i].name] = Components[i].value
     end
 
-    SetResourceKvp("utility_skin", json.encode(Clothes))
+    SetResourceKvp(kvp, json.encode(Clothes))
 end
 
 -- Function
@@ -234,8 +237,8 @@ AddEventHandler('onClientMapStart', function()
 
     while LocalPlayer.state.loaded == nil do Citizen.Wait(1) end
 
-    print("[DEBUG] [SKIN] Spawn, "..json.encode(uPlayer.other_info.coords))
-    local _coords = uPlayer.other_info.coords
+    print("[DEBUG] [SKIN] Spawn, "..json.encode(uPlayer.coords))
+    local _coords = uPlayer.coords
 
     print("[DEBUG] [SKIN] "..json.encode({ x = _coords[1], y = _coords[2], z = _coords[3], heading = 0.0, model = `mp_m_freemode_01`, skipFade = false}))
     
@@ -258,9 +261,9 @@ AddEventHandler('onClientMapStart', function()
 
                     ApplySkin(Clothes)
                     
-                    if uPlayer.other_info.weapon ~= nil then
-                        for weapon, ammo in pairs(uPlayer.other_info.weapon) do
-                            weapon = UncompressWeapon(weapon)
+                    if uPlayer.weapons ~= nil then
+                        for weapon, ammo in pairs(uPlayer.weapons) do
+                            weapon = DecompressWeapon(weapon)
 
                             GiveWeaponToPed(player, GetHashKey(weapon), tonumber(ammo), false, false)
                             SetPedAmmo(player, GetHashKey(weapon), tonumber(ammo))
@@ -269,12 +272,12 @@ AddEventHandler('onClientMapStart', function()
                         SetCurrentPedWeapon(player, `weapon_unarmed`, true)
                     end
 
-                    if uPlayer.other_info.isdead then
+                    if uPlayer.external.isdead then
                         SetEntityHealth(player, 0)
                     end
 
-                    if uPlayer.other_info.armour ~= nil then
-                        SetPedArmour(player, tonumber(uPlayer.other_info.armour))
+                    if uPlayer.external.armour ~= nil then
+                        SetPedArmour(player, tonumber(uPlayer.external.armour))
                     end
 
                     while not HasCollisionLoadedAroundEntity(player) do
@@ -383,9 +386,13 @@ function OpenSkinMenu(onclose, filter, noexport)
             menu.update(content, false)
         end
     end, function(sub,data,menu)
-        onclose(function() 
-            SetResourceKvp("utility_skin", json.encode(Clothes))
-        end, sub, data, menu)
+        if onclose then
+            onclose(function() 
+                SetResourceKvp(kvp, json.encode(Clothes))
+            end, sub, data, menu)
+        else
+            SetResourceKvp(kvp, json.encode(Clothes))
+        end
     end)
 end
 
@@ -414,7 +421,7 @@ end)
 
 
 -- Exports
-exports("SaveSkin", function() SetResourceKvp("utility_skin", json.encode(Clothes)) end)
+exports("SaveSkin", function() SetResourceKvp(kvp, json.encode(Clothes)) end)
 
 exports("GetSkin", function() return Clothes end)
 exports("GetComponents", function() return Components end)

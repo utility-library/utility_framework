@@ -2,27 +2,30 @@
 RegisterServerEvent("Utility:Loaded")
 AddEventHandler("Utility:Loaded", function()
     local source = source
-    local steam = GetPlayerIdentifier(source, 0)
+    local identifier = GetuPlayerIdentifier(source)
 
     --print(Utility.DatabaseLoaded)
     while not Utility.DatabaseLoaded do
         Citizen.Wait(1)
     end
     
-    local uPlayer = GetPlayer(steam)
+    local uPlayer = GetPlayer(identifier)
 
-    if not uPlayer then
-        uPlayer = GeneratePlayer(source, steam)
-    end
-
-    if uPlayer.__type ~= "uPlayer" then 
+    if uPlayer then
+        if uPlayer.__type == nil or uPlayer.__type == "uClass" then 
+            uPlayer:PreBuild()
+        end
+    
         uPlayer:Build(source)
-    end
-
-    uPlayer:ClientBuild(source)
-    for k,v in pairs(Utility.PlayersData[steam]) do
-        --print("Setting "..tostring(k).." to "..tostring(v).." for "..tostring(source))
-        Player(source).state[k] = v
+    
+        for k,v in pairs(uPlayer) do
+            if type(v) ~= "function" then
+                --print("Setting "..tostring(k).." to "..tostring(v).." for "..tostring(source))
+                Player(source).state[k] = v
+            end
+        end
+    else
+        print("Player "..identifier.." not found")
     end
 end)
 
@@ -30,35 +33,43 @@ end)
 -- Maintenance, Ban and Steam check
 AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
     local _source = source
-    local identifiers = GetPlayerIdentifiers(_source)
+    local identifier = GetuPlayerIdentifier(_source)
 
-    if not identifiers[1]:find("steam") then
-        Log("NoSteam", "The player "..name.." dont have steam opened")
+    if not GetuPlayerIdentifier(_source) then
+        Log("NoIdentifier", "The player "..name.." dont have "..Config.Database.Identifier.." opened")
 
         CancelEvent()
-        setKickReason("Utility Framework: Unable to find SteamId, please relaunch FiveM with steam open or restart FiveM & Steam if steam is already open")
+        setKickReason("Utility Framework: Unable to find "..Config.Database.Identifier..", please relaunch FiveM")
     else
+        local uPlayer = Utility.PlayersData[identifier]
+
+        if uPlayer and uPlayer:IsBuilded() then
+            CancelEvent()
+            setKickReason("Utility Framework: Duplicate "..Config.Database.Identifier..", try again in a while")
+            return
+        end
+
         if Config.Maintenance then
-            if not Config.Group[identifiers[1]] then
+            if not Config.Group[identifier] then
                 CancelEvent()
                 setKickReason("Utility Framework: "..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["Maintenance"]))        
             end
         else
-            local identifier = {}
+            local identifiers = {}
 
             for k,v in pairs(GetPlayerIdentifiers(_source))do                            
                 if v:find("steam:") then
-                    identifier[1] = v
+                    identifiers[1] = v
                 elseif v:find("ip:") then
-                    identifier[2] = v
+                    identifiers[2] = v
                 elseif v:find("discord:") then
-                    identifier[3] = v
+                    identifiers[3] = v
                 elseif v:find("live:") then
-                    identifier[4] = v
+                    identifiers[4] = v
                 elseif v:find("license:") then
-                    identifier[5] = v
+                    identifiers[5] = v
                 elseif v:find("xbl:") then
-                    identifier[6] = v
+                    identifiers[6] = v
                 end
             end
 
@@ -71,10 +82,11 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
                 end
 
                 -- Normal data
-                if Utility.Bans[i].data[1] == identifier[1] or Utility.Bans[i].data[2] == identifier[2] or Utility.Bans[i].data[3] == identifier[3] or Utility.Bans[i].data[4] == identifier[4] or Utility.Bans[i].data[5] == identifier[5] or Utility.Bans[i].data[6] == identifier[6] then
+                
+                if Utility.Bans[i].data[1] == identifiers[1] or Utility.Bans[i].data[2] == identifiers[2] or Utility.Bans[i].data[3] == identifiers[3] or Utility.Bans[i].data[4] == identifiers[4] or Utility.Bans[i].data[5] == identifiers[5] or Utility.Bans[i].data[6] == identifiers[6] then
                     CancelEvent()
                     setKickReason("Utility Framework: "..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["Banned"]))    
-                    print("[^1INFO^0] "..name.." tried to join but is ^1banned^0! [Rejection Type: 1]")   
+                    print("[^1INFO^0] "..name.." tried to join but is ^1banned^0! [Rejection Type: Datas]")   
                     return
                 end
 
@@ -85,7 +97,7 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
                             if Utility.Bans[i].token[i2] == GetPlayerToken(_source, i3) then
                                 CancelEvent()
                                 setKickReason("Utility Framework: "..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["Banned"])) 
-                                print("[^1INFO^0] "..name.." tried to join but is ^1banned^0! [Rejection Type: 2]")   
+                                print("[^1INFO^0] "..name.." tried to join but is ^1banned^0! [Rejection Type: Tokens]")   
                                 return
                             end
                         end
@@ -93,11 +105,9 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
                 end
             end
 
-            local steam = identifier[1]
-
-            if not Utility.PlayersData[steam] then
-                local uPlayer = GeneratePlayer(_source, steam)
-                uPlayer:Build()
+            if not Utility.PlayersData[identifier] then
+                local uPlayer = GeneratePlayer(_source, identifier)
+                uPlayer:PreBuild()
 
                 -- Log
                 if Config.Logs.Connection.NewUser then 
@@ -105,8 +115,8 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
                     Log("Connection", "New user "..uPlayer.name.." connected and created")
                 end
             else
-                local uPlayer = Utility.PlayersData[steam]
-                uPlayer:Build()
+                local uPlayer = Utility.PlayersData[identifier]
+                uPlayer:PreBuild()
 
                 -- Log
                 if Config.Logs.Connection.OldUser then 

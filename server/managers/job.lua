@@ -10,7 +10,7 @@ RemoveFromJob = function(job, source)
 end
 
 AddToJob = function(job, type, source)
-    print("Adding "..source.." to "..job.name)
+    --print("Adding "..source.." to "..job.name)
 
     if job then
         if Utility.JobWorker[job.name] == nil then Utility.JobWorker[job.name] = {} end

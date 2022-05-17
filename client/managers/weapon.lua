@@ -13,8 +13,8 @@ Citizen.CreateThread(function()
                 local maxAmmo = GetAmmoInPedWeapon(PlayerPed, weapon)
                 local weaponName
     
-                for k,v in pairs(LocalPlayer.state.other_info.weapon) do
-                    if weapon == GetHashKey(UncompressWeapon(k)) then
+                for k,v in pairs(LocalPlayer.state.weapons) do
+                    if weapon == GetHashKey(DecompressWeapon(k)) then
                         weaponName = k
                         break
                     end
@@ -25,7 +25,7 @@ Citizen.CreateThread(function()
                         last.ammo = maxAmmo
 
                         print("Syncing ammo "..weaponName, maxAmmo)
-                        TriggerServerEvent("Utility:Weapon:SyncAmmo", LocalPlayer.state.steam, weaponName, maxAmmo)
+                        TriggerServerEvent("Utility:Weapon:SyncAmmo", LocalPlayer.state.identifier, weaponName, maxAmmo)
                     end
                 end
             end

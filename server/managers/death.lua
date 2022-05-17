@@ -1,13 +1,13 @@
 RegisterServerEvent("Utility:SetDeath")
-AddEventHandler("Utility:SetDeath", function(steam, death, info)
+AddEventHandler("Utility:SetDeath", function(death, info)
     local player = Player(source).state
 
-    local oio = player.other_info
+    local oio = player.external
 
     if Config.Actived.No_Rp.KillDeath then
         if info ~= nil and info.killer ~= 0 then
             local player = Player(info.killer).state
-            local oi = player.other_info
+            local oi = player.external
 
             if oi.kill == nil then 
                 oi.kill = 0
@@ -15,7 +15,7 @@ AddEventHandler("Utility:SetDeath", function(steam, death, info)
 
             oi.kill = oi.kill + 1
 
-            player.other_info = oi
+            player.external = oi
         end
 
         if oio.death == nil then 
@@ -25,5 +25,5 @@ AddEventHandler("Utility:SetDeath", function(steam, death, info)
     end
     
     oio.isdead = death
-    player.other_info = oio
+    player.external = oio
 end)

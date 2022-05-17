@@ -1,4 +1,6 @@
 local mathm = addon("math")
+UtilityExports = exports["utility_framework"]
+
     -- Money
         GetMoney = function(type)
             return UtilityExports:GetMoney(type)
@@ -110,17 +112,12 @@ local mathm = addon("math")
         end
 
 
---[[RegisterCommand("unban", function()
-    DeleteResourceKvp("utility_ban")
-end)]]
 
 RegisterCommand("dv", function(source, args)    
     if uPlayer.group ~= "user" then
         local veh = GetVehiclePedIsIn(PlayerPedId())
         if veh ~= 0 then     
             DeleteEntity(veh)
-
-            uPlayer.SetCarHudVisible(false) -- To remove
         else
             local a = GetGamePool("CVehicle")
 
@@ -142,8 +139,24 @@ RegisterCommand("car", function(source, args)
 
         local veh = CreateVehicle(GetHashKey(args[1]), GetEntityCoords(PlayerPedId()), GetEntityHeading(PlayerPedId()), true)
         TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
+    end
+end)
 
-        uPlayer.SetCarHudVisible(true, veh)
+RegisterCommand("givecar", function(source, args)
+    if uPlayer.group ~= "user" then
+        local id = args[1]
+        local hash = GetHashKey(args[2])
+
+        if id == "0" then id = GetPlayerServerId(PlayerId()) end
+
+        if not HasModelLoaded(hash) then
+            RequestModel(hash)
+            while not HasModelLoaded(hash) do Citizen.Wait(1) end  
+        end
+
+        local veh = CreateVehicle(hash, vector3(0.0, 0.0, 0.0), 0.0, false)
+        TriggerServerEvent("Utility:GiveCarOnlyStaff", tonumber(id), GetVehicleComponents(veh))
+        DeleteEntity(veh)
     end
 end)
 
@@ -175,18 +188,18 @@ RegisterCommand("tp", function(source, args)
             local _vector3 = args[1]:match("%[(%a+)%]")
             for xyz in _vector3:gmatch("%S+") do table.insert(coords, xyz) end
 
-            SetPedCoordsKeepVehicle(PlayerPedId(), tonumber(coords[1]), tonumber(coords[2]), tonumber(coords[3]))
+            SetPedCoordsKeepVehicle(PlayerPedId(), tonumber(coords[1]) + 0.0, tonumber(coords[2]) + 0.0, tonumber(coords[3]) + 0.0)
         else
             args[1] = args[1]:gsub(",", "")
             args[2] = args[2]:gsub(",", "")
             args[3] = args[3]:gsub(",", "")
 
-            SetPedCoordsKeepVehicle(PlayerPedId(), tonumber(args[1]), tonumber(args[2]), tonumber(args[3]))
+            SetPedCoordsKeepVehicle(PlayerPedId(), tonumber(args[1]) + 0.0, tonumber(args[2]) + 0.0, tonumber(args[3]) + 0.0)
         end
     end
 end)
 
-RegisterCommand("clearentattached", function(source)
+RegisterCommand("clearattached", function(source)
     local obj = GetGamePool("CObject")
 
     for i=1, #obj do
@@ -248,7 +261,9 @@ RegisterCommand("heading", function(source)
 end)
 
 RegisterCommand("die", function(source, args)
-    SetEntityHealth(PlayerPedId(), 0)
+    if uPlayer.group ~= "user" then
+        SetEntityHealth(PlayerPedId(), 0)
+    end
 end)
 
 RegisterCommand("isdead", function(source, args)

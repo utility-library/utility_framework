@@ -8,20 +8,22 @@ local self = {
     loaded = loaded
 }
 
-function JobChange(old, new)
-    for i=1, #job do
-        if new[1].name == job[i] then
-            if not loaded[i] then
-                loaded[i] = true
-                if LoadJob then
-                    LoadJob(job[i])
+function JobChange(old, new, type)
+    if type == 1 then
+        for i=1, #job do
+            if new.name == job[i] then
+                if not loaded[i] then
+                    loaded[i] = true
+                    if LoadJob then
+                        LoadJob(job[i])
+                    end
                 end
-            end
-        else
-            if loaded[i] then
-                loaded[i] = false
-                if UnLoadJob then
-                    UnLoadJob(job[i])
+            else
+                if loaded[i] then
+                    loaded[i] = false
+                    if UnLoadJob then
+                        UnLoadJob(job[i])
+                    end
                 end
             end
         end

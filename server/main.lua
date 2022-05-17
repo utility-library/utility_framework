@@ -9,23 +9,17 @@ Citizen.CreateThreadNow(function()
     local vehicle = LoadVehicles()
     local player  = LoadPlayers()
     local society = LoadSociety()
+    local stashes = LoadStashes()
     
     -- Loaded Message
-    StartupMessage(player, society, vehicle)
     LoadBans()
+    StartupMessage(player, society, vehicle, stashes)
     return
 end)
 
 
 -- Advertisement
 SetConvarServerInfo("Framework", "Utility")
-
-
-
-
-
-
-
 
 
 

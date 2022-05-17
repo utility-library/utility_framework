@@ -6,52 +6,42 @@ if Config.Addons.Weather.active then
         if CurrentWeather == "EXTRASUNNY" then
             local new = math.random(1, 10)
     
-            if new <= 4 then
+            if new <= 3 then
                 CurrentWeather = "OVERCAST" -- 4/10
             else
-                CurrentWeather = "EXTRASUNNY" -- 6/10
+                CurrentWeather = "EXTRASUNNY" -- 7/10
             end
         elseif CurrentWeather == "OVERCAST" then
             local new = math.random(1, 10)
     
-            if new <= 6 then
-                CurrentWeather = "EXTRASUNNY" -- 6/10
+            if new <= 5 then
+                CurrentWeather = "RAIN" -- 6/10
             else
-                CurrentWeather = "EXTRASUNNY" -- 4/10
+                CurrentWeather = "OVERCAST" -- 4/10
             end
         elseif CurrentWeather == "RAIN" then
             local new = math.random(1, 11)
     
             if new <= 7 then
-                CurrentWeather = "EXTRASUNNY" -- 7/10
+                CurrentWeather = "CLEARING" -- 7/10
             elseif new == 8 then
-                CurrentWeather = "EXTRASUNNY" -- 1/10
+                CurrentWeather = "THUNDER" -- 1/10
             elseif new == 9 then
-                CurrentWeather = "EXTRASUNNY" -- 1/10
+                CurrentWeather = "OVERCAST" -- 1/10
             else
                 CurrentWeather = "RAIN" -- 2/10
             end
-        elseif CurrentWeather == "EXTRASUNNY" then
-            local new = math.random(1, 10)
-    
-            if new <= 3 then
-                CurrentWeather = "EXTRASUNNY" -- 3/10
-            elseif new == 1 then
-                CurrentWeather = "EXTRASUNNY" -- 1/10
-            else
-                CurrentWeather = "EXTRASUNNY" -- 6/10
-            end 
         elseif CurrentWeather == "THUNDER" then
             local new = math.random(1, 10)
     
             if new <= 7 then
-                CurrentWeather = "EXTRASUNNY" -- 7/10
+                CurrentWeather = "CLEARING" -- 7/10
             else
-                CurrentWeather = "EXTRASUNNY" -- 3/10
+                CurrentWeather = "OVERCAST" -- 3/10
             end
-        elseif CurrentWeather == "EXTRASUNNY" then
+        elseif CurrentWeather == "CLEARING" then
             CurrentWeather = "CLOUDS" -- 10/10
-        elseif CurrentWeather == "EXTRASUNNY" then
+        elseif CurrentWeather == "CLOUDS" then
             local new = math.random(1, 10)
     
             if new <= 3 then
@@ -59,6 +49,8 @@ if Config.Addons.Weather.active then
             else
                 CurrentWeather = "EXTRASUNNY" -- 7/10
             end
+        else
+            CurrentWeather = "EXTRASUNNY"
         end
     end
 
@@ -85,9 +77,9 @@ if Config.Addons.Weather.active then
     Citizen.CreateThread(function()
         while true do
             Citizen.Wait(10 * 60000)
-            print("Old weather "..CurrentWeather)
+            --print("Old weather "..CurrentWeather)
             NextWeatherStage()
-            print("New weather "..CurrentWeather)
+            --print("New weather "..CurrentWeather)
             TriggerClientEvent("Utility:Weather:SetWeather", -1, CurrentWeather)
         end
     end)

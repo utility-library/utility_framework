@@ -8,6 +8,72 @@ addon = function(name)
     end
 end
 
+GetVehicleComponents = function(vehicleHandle)
+    local colorPrimary, colorSecondary = GetVehicleColours(vehicleHandle)
+    local pearlescentColor, wheelColor = GetVehicleExtraColours(vehicleHandle)
+    local extras = {}
+    local mods = {}
+
+    -- Extra
+    for i=0, 12 do
+        if DoesExtraExist(vehicleHandle, i) then
+            local active = IsVehicleExtraTurnedOn(vehicleHandle, i) == 1
+
+            if active then
+                table.insert(extras, tonumber(i))
+            end
+        end
+    end
+
+    -- Mods
+    for i=0, 49 do
+        table.insert(mods, GetVehicleMod(vehicleHandle, i))
+    end
+
+    mods[19] = IsToggleModOn(vehicleHandle, 18)
+    mods[21] = IsToggleModOn(vehicleHandle, 20)
+    mods[23] = IsToggleModOn(vehicleHandle, 22)
+
+    mods[50] = GetVehicleModVariation(vehicleHandle, 23)
+
+    -- Basic function to round the number
+    local function round(value, dec) local power = 10^dec return math.floor((value * power) + 0.5) / (power) end
+    local function pack(...) local a = {...} return a end
+
+    return {
+        model             = GetEntityModel(vehicleHandle),
+        class             = GetVehicleClass(vehicleHandle),
+        plate             = {
+            GetVehicleNumberPlateText(vehicleHandle), 
+            GetVehicleNumberPlateTextIndex(vehicleHandle)
+        },
+        health            = {
+            round(GetVehicleBodyHealth(vehicleHandle), 1),
+            round(GetVehicleEngineHealth(vehicleHandle), 1),
+            round(GetVehiclePetrolTankHealth(vehicleHandle), 1),
+        },
+
+        fuel              = round(GetVehicleFuelLevel(vehicleHandle), 1),
+        color             = {colorPrimary,colorSecondary, pearlescentColor, wheelColor, pack(GetVehicleTyreSmokeColor(vehicleHandle))},
+
+        wheels            = GetVehicleWheelType(vehicleHandle),
+        windowTint        = GetVehicleWindowTint(vehicleHandle),
+        
+        neon = {
+            GetVehicleXenonLightsColour(vehicleHandle),
+            IsVehicleNeonLightEnabled(vehicleHandle, 0),
+            IsVehicleNeonLightEnabled(vehicleHandle, 1),
+            IsVehicleNeonLightEnabled(vehicleHandle, 2),
+            IsVehicleNeonLightEnabled(vehicleHandle, 3),
+            pack(GetVehicleNeonLightsColour(vehicleHandle))
+        },
+
+        extras            = extras,
+        mods = mods,
+        livery = GetVehicleLivery(vehicleHandle)
+    }
+end
+
 SetVehicleComponents = function(vehicleHandle, component)
     if type(component.plate) == "table" then
         SetVehicleNumberPlateText(vehicleHandle, component.plate[1])
@@ -71,7 +137,7 @@ CompressWeapon = function(name)
     return name:lower()
 end
 
-UncompressWeapon = function(name)
+DecompressWeapon = function(name)
     if name:sub(1, 1) == "w" then
         name = name:gsub("w"..name:sub(2, 2), "weapon_"..name:sub(2, 2))
     end
@@ -80,7 +146,7 @@ UncompressWeapon = function(name)
 end
 
 exports("CompressWeapon", CompressWeapon)
-exports("UncompressWeapon", UncompressWeapon)
+exports("DecompressWeapon", DecompressWeapon)
 
 
 
@@ -89,19 +155,33 @@ CreateMetaPlayer = function()
     return setmetatable({}, {
         __index = function(_, k)
             --print(k, LocalPlayer.state[k])
-
             if k == "vehicle" or k == "veh" then
                 return GetVehiclePedIsIn(uPlayer.ped)
             elseif k == "coords" then
-                return GetEntityCoords(uPlayer.ped)
+                if GetCurrentResourceName() == "utility_framework" then
+                    return LocalPlayer.state.coords
+                else
+                    return GetEntityCoords(uPlayer.ped)
+                end
             elseif k == "heading" then
                 return GetEntityHeading(uPlayer.ped)
             elseif k == "weapon" then
                 return GetSelectedPedWeapon(uPlayer.ped)
+            elseif k == "armed" then
+                return IsPedArmed(uPlayer.ped, 4)
             elseif k == "weaponModel" then
                 return GetCurrentPedWeaponEntityIndex(uPlayer.ped)
             elseif k == "id" then
                 return id
+            elseif k == "ped" then
+                if DoesEntityExist(LocalPlayer.state[k]) then
+                    return LocalPlayer.state[k]
+                else
+                    local ped = PlayerPedId()
+                    LocalPlayer.state[k] = ped
+                    
+                    return ped
+                end
             elseif type(LocalPlayer.state[k]) == "string" and LocalPlayer.state[k]:find("call") then
                 return function(...)
                     local v = LocalPlayer.state[k]
@@ -117,8 +197,8 @@ CreateMetaPlayer = function()
         end,
         __newindex = function(_, k, v)
             if type(v) == "function" then
-                exports(k, v) -- Create the export
-                LocalPlayer.state[k] = "call:"..GetCurrentResourceName()..":"..k
+                exports(k, v) -- Create the exports
+                LocalPlayer.state[k] = "call:"..ResourceName..":"..k
 
                 --print("State = "..LocalPlayer.state[k])
                 -- Assign to the state "call:resource_name:function_name"
@@ -132,15 +212,36 @@ CreateMetaPlayer = function()
     })
 end
 
-FindItem = function(name, data)
-    for i=1, #LocalPlayer.state.inventory do
-        if LocalPlayer.state.inventory[i][1] == name then
+exports("CreateMetaPlayer", CreateMetaPlayer)
+
+CheckFilter = function(data, filter)
+    local filterkeys = 0
+    local foundkeys = 0
+    
+    for k,v in pairs(filter) do
+        filterkeys = filterkeys + 1
+        
+        if data[k] == v then
+            foundkeys = foundkeys + 1
+        end
+    end
+    
+    if filterkeys == foundkeys then
+        return true
+    else
+        return false
+    end
+end
+
+FindItem = function(name, inv, data)
+    for i=1, #inv do
+        if inv[i][1] == name then
             if data then
-                if LocalPlayer.state.inventory[i][3] == data then
-                    return LocalPlayer.state.inventory[i]
+                if inv[i][3] and CheckFilter(inv[i][3], data) then
+                    return inv[i], i
                 end
             else
-                return LocalPlayer.state.inventory[i]
+                return inv[i], i
             end
         end
     end
@@ -148,15 +249,17 @@ FindItem = function(name, data)
     return false
 end
 
-GetItemInternal = function(name, inv)
-    local item = FindItem(name)
 
+GetItemInternal = function(name, data, inv)
+    local item = FindItem(name, inv, data)
     return {
-        count = (item[2]) or 0, 
+        quantity = item[2] or 0, 
         label = Config.Labels["items"][name] or name, 
         [Config.Inventory.Type] = Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight, 
-        data = (item[3]) or {}, 
-        __type = "item"
+        data = item[3] or {}, 
+        __type = "item",
+
+        found = item ~= false
     }
 end
 
@@ -251,4 +354,9 @@ ConvertKvp = function(string)
     end
 
     return string or {}
+end
+
+EmitEvent = function(name, ...)
+    TriggerClientEvent("Utility:Emitter:"..name, source, ...)
+    TriggerEvent("Utility:Emitter:"..name, source, ...)
 end

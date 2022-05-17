@@ -4,8 +4,8 @@ RegisterNetEvent("Utility:Emitter:OnRevive", function()
         NetworkResurrectLocalPlayer(GetEntityCoords(player), GetEntityHeading(player), true, false)
         ClearPedBloodDamage(player)
 
-        if Config.Actived.Other_info.Death then
-            TriggerServerEvent("Utility:SetDeath", LocalPlayer.state.steam, false)
+        if Config.Actived.Addons.Death then
+            TriggerServerEvent("Utility:SetDeath", false)
         end
     end
 end)
@@ -19,29 +19,29 @@ AddEventHandler('gameEventTriggered',function(name,data)
             --print("Damage "..json.encode(data))
             if data[1] == PlayerPedId() and GetEntityHealth(PlayerPedId()) == 0 then -- If is death
                 if data[2] == -1 then
-                    if Config.Actived.Other_info.Death then
+                    if Config.Actived.Addons.Death then
                         TriggerEvent("Utility:OnDeath", data)
-                        TriggerServerEvent("Utility:SetDeath", LocalPlayer.state.steam, true)
+                        TriggerServerEvent("Utility:SetDeath", true)
                     end
                 else
                     if Config.Actived.No_Rp.KillDeath then
                         local killerPlayerIndex = NetworkGetPlayerIndexFromPed(data[2])
 
                         if NetworkIsPlayerActive(killerPlayerIndex) then 
-                            TriggerServerEvent("Utility:SetDeath", LocalPlayer.state.steam, true, {
+                            TriggerServerEvent("Utility:SetDeath", true, {
                                 killer = GetPlayerServerId(killerPlayerIndex), 
                                 victim = data[1]
                             })
                         else
-                            TriggerServerEvent("Utility:SetDeath", LocalPlayer.state.steam, true, {
+                            TriggerServerEvent("Utility:SetDeath", true, {
                                 killer = 0, 
                                 victim = data[1]
                             })
                         end
                     else
-                        if Config.Actived.Other_info.Death then
+                        if Config.Actived.Addons.Death then
                             TriggerEvent("Utility:OnDeath", {killer = NetworkGetPlayerIndexFromPed(data[2]), cause = GetPedCauseOfDeath(PlayerPedId())})
-                            TriggerServerEvent("Utility:SetDeath", LocalPlayer.state.steam, true)
+                            TriggerServerEvent("Utility:SetDeath", true)
                         end
                     end
                 end

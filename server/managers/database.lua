@@ -1,59 +1,53 @@
 GenerateQueryFromTable = function(_type, uPlayer, coords)
-    local tab = {
-        steam = uPlayer.steam:gsub("steam:110000", "")
+    local uPlayerReadyForDB = {
+        identifier = uPlayer.uidentifier
     }
-
-    if Config.Actived.Other_info.Position then            
-        uPlayer.other_info.coords = {
-            [1] = tonumber(string.format("%.2f", coords.x)),
-            [2] = tonumber(string.format("%.2f", coords.y)),
-            [3] = tonumber(string.format("%.2f", coords.z))
-        }
-    end
-
-    local other_info = json.decode(json.encode(uPlayer.other_info))
-    for k,v in pairs(other_info) do
-        if type(v) == "table" then -- If is a empty table dont save it
-            if next(v) == nil then
-                other_info[k] = nil
-            end
-        elseif k == "isdead" and v == false then
-            other_info[k] = nil
-        end
-    end
     
-    tab.other_info = other_info
-
-    if Config.Actived.Identity then 
-        tab.identity = uPlayer.identity
-    end
     if Config.Actived.Jobs then 
         local compressed_jobs = {}
 
         for i=1, #uPlayer.jobs do 
-            print(json.encode(uPlayer.jobs))
             table.insert(compressed_jobs, {[1] = uPlayer.jobs[i].name, [2] = uPlayer.jobs[i].grade and uPlayer.jobs[i].grade.id or 1, [3] = uPlayer.jobs[i].onduty}) 
         end
-
-        --print(json.encode(compressed_jobs))
-        tab.jobs = compressed_jobs
+        
+        uPlayerReadyForDB.jobs = compressed_jobs
+    end
+    if Config.Actived.Identity then 
+        uPlayerReadyForDB.identity = uPlayer.identity
     end
     if Config.Actived.Accounts then 
-        tab.accounts = uPlayer.accounts
+        uPlayerReadyForDB.accounts = uPlayer.accounts
     end
     if Config.Actived.Inventory then 
-        tab.inventory = uPlayer.inventory
+        uPlayerReadyForDB.inventory = uPlayer.inventory
+    end
+    if Config.Actived.License then
+        uPlayerReadyForDB.licenses = uPlayer.licenses
+    end
+    if Config.Actived.Weapons then
+        uPlayerReadyForDB.weapons = uPlayer.weapons
+    end
+    if Config.Actived.Bills then
+        uPlayerReadyForDB.bills = uPlayer.bills
+    end
+    if Config.Actived.Coords then
+        uPlayerReadyForDB.coords = {
+            [1] = mathm.round(coords.x, 2),
+            [2] = mathm.round(coords.y, 2),
+            [3] = mathm.round(coords.z, 2)
+        }
+
+        uPlayer.coords = uPlayerReadyForDB.coords
     end
 
-
     if _type == "INSERT" then
-        if Config.Database.SaveNameInDb then tab.name = uPlayer.name end
+        if Config.Database.SaveNameInDb then uPlayerReadyForDB.name = uPlayer.name end
 
         local params = {}
         local names = ""        
         local values = ""        
 
-        for k,v in pairs(tab) do
+        for k,v in pairs(uPlayerReadyForDB) do
             if type(v) == "table" then
                 params[k] = json.encode(v)
             else
@@ -64,29 +58,36 @@ GenerateQueryFromTable = function(_type, uPlayer, coords)
             values = values..":"..k..","
         end
 
-        local query = 'INSERT INTO users ('..names:sub(1, -2)..') VALUES ('..values:sub(1, -2)..')'
+        names = names:sub(1, -2)
+        values = values:sub(1, -2)
+
+        local query = 'INSERT INTO users ('..names..') VALUES ('..values..')'
         return query, params
     elseif _type == "UPDATE" then
-        local params = {}
         local set = ""        
+        local params = {
+            last_quit = os.date("%Y-%m-%d")
+        }
 
-        for k,v in pairs(tab) do
+        for k,v in pairs(uPlayerReadyForDB) do
+            local skip = false
+
             if type(v) == "table" then
-                params[k] = json.encode(v)
+                if next(v) ~= nil then
+                    params[k] = json.encode(v)
+                else
+                    skip = true
+                end
             else
                 params[k] = v
             end
             
-            if k ~= "steam" then
+            if k ~= "identifier" and not skip then
                 set = set.." "..k.." = :"..k.."," 
             end
         end
 
-        local last_quit = os.date("%Y-%m-%d")
-        params["last_quit"] = last_quit
-
-        local query = 'UPDATE users SET '..set..' last_quit = :last_quit WHERE steam = :steam'
-
+        local query = 'UPDATE users SET '..set..' last_quit = :last_quit WHERE identifier = :identifier'
         return query, params
     end
 end
@@ -96,19 +97,22 @@ AddEventHandler('onResourceStop', function(resourceName)
         return
     end
     
+    -- Save all players in the database (prevent lose of data for new players)
     for _, v in ipairs(GetPlayers()) do
         local uPlayer = GetPlayer(tonumber(v))
 
-        if uPlayer and uPlayer.source then
+        if uPlayer and uPlayer.source then -- If the player is online
             local coords = GetEntityCoords(GetPlayerPed(uPlayer.source))
     
             if uPlayer.IsNew then
                 local query, params = GenerateQueryFromTable("INSERT", uPlayer, coords)
-                MySQL.Sync.fetchAll(query, params)
+                MySQL.Async.execute(query, params)
             else
                 local query, params = GenerateQueryFromTable("UPDATE", uPlayer, coords)
-                MySQL.Sync.fetchAll(query, params)
+                MySQL.Async.execute(query, params)
             end
         end
     end
+
+    TriggerEvent("utilityFrameworkRestarted")
 end)

@@ -86,21 +86,26 @@ Citizen.CreateThread(function()
     SendNUIMessage({imgdir = Config.Inventory.NotificationImageBaseDirectory})
 end)
 
+local pressedF = false
 RegisterCommand("enter_exitvehicle", function(source, args)
     local veh = uPlayer.veh
 
     Citizen.Wait(50)
 
     if GetVehiclePedIsTryingToEnter(uPlayer.ped) == 0 then
-        TriggerEvent("Utility:Emitter:ExitVehicle", veh)
+        EmitEvent("ExitVehicle", veh)
     else
-        while GetVehiclePedIsTryingToEnter(uPlayer.ped) ~= 0 do
-            Citizen.Wait(100)
-        end
-    
-        veh = uPlayer.veh
-        if veh ~= 0 and veh ~= nil then
-            TriggerEvent("Utility:Emitter:EnterVehicle", uPlayer.veh)
+        if not pressedF then
+            pressedF = true
+            while GetVehiclePedIsTryingToEnter(uPlayer.ped) ~= 0 do
+                Citizen.Wait(100)
+            end
+            pressedF = false
+        
+            veh = uPlayer.veh
+            if veh ~= 0 and veh ~= nil then
+                EmitEvent("EnterVehicle", uPlayer.veh)
+            end
         end
     end
 end, true)

@@ -11,15 +11,15 @@ local utfw = exports["utility_framework"]
 -- Exports for loader
     -- Money
         exports("GetMoney", function(type)
-            return {count = LocalPlayer.state.accounts[GetAccountIndex(type)], label = Config.Labels["accounts"][type] or type}
+            return {quantity = LocalPlayer.state.accounts[GetAccountIndex(type)], label = Config.Labels["accounts"][type] or type}
         end)
 
         exports("HaveMoneyQuantity", function(type, quantity)
             return (LocalPlayer.state.accounts[GetAccountIndex(type)] >= quantity)
         end)
     -- Item
-        exports("GetItem", function(name)
-            return GetItemInternal(name, LocalPlayer.state.inventory)
+        exports("GetItem", function(name, data)
+            return GetItemInternal(name, data, LocalPlayer.state.inventory)
         end)
         exports("IsItemUsable", function(name, id)
             if name then
@@ -58,7 +58,7 @@ local utfw = exports["utility_framework"]
             if IsWeaponValid(weaponhash) then
                 GiveWeaponToPed(PlayerPedId(), weaponhash, ammo, false, equipNow)
 
-                TriggerServerEvent("Utility:Weapon:AddWeapon", LocalPlayer.state.steam, weapon:lower(), ammo)
+                TriggerServerEvent("Utility:Weapon:AddWeapon", LocalPlayer.state.identifier, weapon:lower(), ammo)
             else
                 return nil, "The weapons is invalid"
             end
@@ -69,7 +69,7 @@ local utfw = exports["utility_framework"]
 
             if IsWeaponValid(weaponhash) and HasPedGotWeapon(PlayerPedId(), weaponhash) then
                 RemoveWeaponFromPed(PlayerPedId(), GetHashKey(weapon))
-                TriggerServerEvent("Utility:Weapon:RemoveWeapon", LocalPlayer.state.steam, weapon:lower())
+                TriggerServerEvent("Utility:Weapon:RemoveWeapon", LocalPlayer.state.identifier, weapon:lower())
             else
                 return nil, "The weapons is invalid or the ped not have the weapon"
             end
@@ -77,21 +77,21 @@ local utfw = exports["utility_framework"]
 
         exports("GetWeapons", function()
             local r = {}
-            for k,v in pairs(LocalPlayer.state.other_info.weapon) do
-                r[UncompressWeapon(k)] = v
+            for k,v in pairs(LocalPlayer.state.weapons) do
+                r[DecompressWeapon(k)] = v
             end
 
             return r
         end)
 
         exports("HaveWeapon", function(name)
-            return LocalPlayer.state.other_info.weapon[CompressWeapon(name)] or false
+            return LocalPlayer.state.weapons[CompressWeapon(name)] or false
         end)
     -- License
         exports("GetLicenses", function()      
             local _ = {}
             
-            for k,v in pairs(LocalPlayer.state.other_info.license) do
+            for k,v in pairs(LocalPlayer.state.licenses) do
                 _[k] = {name = v, label =  Config.Labels["license"][v]}
             end
 
@@ -99,7 +99,7 @@ local utfw = exports["utility_framework"]
         end)
 
         exports("HaveLicense", function(name)
-            return LocalPlayer.state.other_info.license[name] or false
+            return LocalPlayer.state.licenses[name] or false
         end)
     -- Identity
         exports("GetIdentity", function(data)
@@ -115,25 +115,25 @@ local utfw = exports["utility_framework"]
         end)
     -- Billing
         exports("GetBills", function()
-            return LocalPlayer.state.other_info.bills or {}
+            return LocalPlayer.state.bills or {}
         end)
 
     -- IsDead
         exports("IsDead", function()
-            return LocalPlayer.state.other_info.isdead
+            return LocalPlayer.state.external.isdead
         end)
 
     -- Other info integration
         exports("Get", function(id)
             if id == nil then
-                return LocalPlayer.state.other_info.scripts
+                return LocalPlayer.state.scripts
             else
-                local decoded = json.decode(LocalPlayer.state.other_info.scripts[id])
+                local decoded = json.decode(LocalPlayer.state.scripts[id])
 
                 if decoded ~= nil then
                     return decoded
                 else
-                    return LocalPlayer.state.other_info.scripts[id] or nil
+                    return LocalPlayer.state.scripts[id] or nil
                 end
             end
         end)
@@ -191,10 +191,17 @@ local utfw = exports["utility_framework"]
             local res = invoking()
 
             if res and not loaded[res] and ResourceExist(res) then
-                loaded[res] = true
+                loaded[res] = true                
                 return Config[field] or Config
-                print("[DEBUG] [TBP] Sending config to "..res)
             else
                 print("[DEBUG] [TBP] Resource "..res.." as already requested the token")
+            end
+        end)
+
+        AddEventHandler("onResourceStop", function(res) 
+            Citizen.Wait(1) -- Prevent external fake call 
+
+            if GetResourceState(res) == "stopped" then
+                if loaded then loaded[res] = nil end 
             end
         end)

@@ -53,25 +53,33 @@ RegisterSharedFunction = function(name)
     ::_return::
     return nil
 end
+exports("RegisterSharedFunction", RegisterSharedFunction)
+
+GetPreuPlayer = function(source)
+    return setmetatable({}, {
+        __index = function(_,k)
+            local _uPlayer = GetPlayer(source)
+            uPlayer = _uPlayer
+
+            return _uPlayer[k]
+        end
+    })
+end
 
 -- ServerCallback
-RegisterServerCallback = function(name, _function, autoprepare)
-    local b64nameC = enc.Utf8ToB64(name.."_l")
-
+RegisterServerCallback = function(name, cb)
+    local b64nameC = enc.Utf8ToB64(name)
+    
     RegisterServerEvent(name)
     AddEventHandler(name, function(...)
         local source = source
-        source = source
-
-        if autoprepare then
-            uPlayer = GetPlayer(source)
-        end
+        uPlayer = GetPreuPlayer(source)
         
         -- For make the return of lua works
-        local _cb = table.pack(_function(...))
-
-        if _cb ~= nil then
-            TriggerClientEvent(b64nameC, source, _cb)
+        local _cb = table.pack(cb(...))
+            
+        if _cb ~= nil then -- If the callback is not nil
+            TriggerClientEvent(b64nameC, source, _cb) -- Trigger the client event
         end
     end)
 end
@@ -122,7 +130,7 @@ CompressWeapon = function(name)
     return name:lower()
 end
 
-UncompressWeapon = function(name)
+DecompressWeapon = function(name)
     if name:sub(1, 1) == "w" then
         name = name:gsub("w"..name:sub(2, 2), "weapon_"..name:sub(2, 2))
     end
@@ -131,7 +139,7 @@ UncompressWeapon = function(name)
 end
 
 exports("CompressWeapon", CompressWeapon)
-exports("UncompressWeapon", UncompressWeapon)
+exports("DecompressWeapon", DecompressWeapon)
 
 
 function CreateFile(path, data)
@@ -140,48 +148,139 @@ function CreateFile(path, data)
     file:close()
 end
 
-function CheckArgument(method, param, name, paramtype)
-    if type(param) ~= paramtype then
-        error(Config.Labels.framework.NoParameterDefined:format(method, name, type(param), paramtype))
-    end
+function CalculateItemWeight(name, quantity)
+    local weight = (Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight)
+    weight = (weight * quantity) -- Calculate the weight
+
+    return weight
 end
 
-
-
--- Builders
-IdentifyType = function(self)
-    local type = nil
-    
-    if self.deposit then
-        type = "deposit"
-    elseif self.trunk then
-        type = "trunk"
-    elseif self.inventory then
-        type = "inventory"
-    end
-
-    return type
-end
-
-IsTablesEqual = function(t1,t2)
-    for k,v in pairs(t1) do
-        if t2[k] ~= v then 
-            return false 
+function ConvertTables(tab)
+    for k,v in pairs(tab) do
+        if type(v) == "string" then
+            if v:find("{") or v:find("%[") then
+                tab[k] = json.decode(v)
+            end
         end
     end
+end
 
-    return true
+function check(requested)
+    if requested and type(requested) == "table" then
+        local i = 0
+        while true do
+            i=i+1
+            local name, value = debug.getlocal(2, i)
+            if not name then break end
+
+            if requested[name] then
+                if type(value) ~= requested[name] then
+                    error(name..": "..requested[name].." expected, got "..type(value))
+                end
+            end
+        end
+    
+        return true
+    end
+end
+
+function clone(tab)
+    local new = {}
+    for k, v in pairs(tab) do
+        new[k] = v
+    end
+    return new
+end
+
+function merge(...)
+    local args = ({...})
+	local merged = {}
+
+	for i = 1, #args do
+        for k,v in pairs(args[i]) do
+            merged[k] = v
+        end
+	end
+	return merged
+end
+
+exports("Hook", function(uEntity, method, hook)
+    local res = GetInvokingResource()
+
+    if res then
+        if not Utility.Hooks[uEntity] then Utility.Hooks[uEntity] = {} end
+        if not Utility.Hooks[uEntity][method] then Utility.Hooks[uEntity][method] = {} end
+
+        table.insert(Utility.Hooks[uEntity][method], {res, hook}) -- [res: string, hook: function]
+    end
+end)
+
+exports("Unhook", function(uEntity, method)
+    local res = GetInvokingResource()
+
+    if res then
+        if Utility.Hooks[uEntity] and Utility.Hooks[uEntity][method] then
+            for k,v in pairs(Utility.Hooks[uEntity][method]) do
+                if v[1] == res then
+                    Utility.Hooks[uEntity][method][k] = nil
+                end
+            end
+        end
+    end
+end)
+
+function ExecuteHooks(uEntity, method, ...)
+    if Utility.Hooks[uEntity] and Utility.Hooks[uEntity][method] then
+        for i=1, #Utility.Hooks[uEntity][method] do
+            local hook = Utility.Hooks[uEntity][method][i] -- [res: string, hook: function]
+
+            local _return = hook[2](...)
+            if _return then return _return end
+        end
+    end
+end
+
+-- Builders
+IdentifyType = function(self)    
+    if self.deposit then
+        return "deposit"
+    elseif self.trunk then
+        return "trunk"
+    elseif self.inventory then
+        return "inventory"
+    elseif self.items then
+        return "items"
+    end
+end
+
+CheckFilter = function(data, filter)
+    local filterkeys = 0
+    local foundkeys = 0
+    
+    for k,v in pairs(filter) do
+        filterkeys = filterkeys + 1
+        
+        if data[k] == v or v == "any" then
+            foundkeys = foundkeys + 1
+        end
+    end
+    
+    if filterkeys == foundkeys then
+        return true
+    else
+        return false
+    end
 end
 
 FindItem = function(name, inv, data)
     for i=1, #inv do
         if inv[i][1] == name then
             if data then
-                if inv[i][3] and IsTablesEqual(inv[i][3], data) then
-                    return inv[i]
+                if inv[i][3] and CheckFilter(inv[i][3], data) then
+                    return inv[i], i
                 end
             else
-                return inv[i]
+                return inv[i], i
             end
         end
     end
@@ -189,32 +288,70 @@ FindItem = function(name, inv, data)
     return false
 end
 
-GetItemInternal = function(name, data, inv)
-    local item = FindItem(name, inv, data)
-    return {
-        count = item[2] or 0, 
-        label = Config.Labels["items"][name] or name, 
-        [Config.Inventory.Type] = Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight, 
-        data = item[3] or {}, 
-        __type = "item",
+FindItems = function(name, inv, data)
+    local items = {}
 
-        found = item ~= false
-    }
+    for i=1, #inv do
+        if inv[i][1] == name then
+            if data then
+                if inv[i][3] and CheckFilter(inv[i][3], data) then
+                    table.insert(items, {inv[i], i})
+                end
+            else
+                table.insert(items, {inv[i], i})
+            end
+        end
+    end
+
+    if next(items) then
+        return items
+    else 
+        return false
+    end
+end
+
+EmitEvent = function(name, source, ...)
+    TriggerClientEvent("Utility:Emitter:"..name, source, ...)
+    TriggerEvent("Utility:Emitter:"..name, source, ...)
+end
+
+GetName = function(self, type)
+    if type == "inventory" then
+        return self.name.." ("..self.source..")"
+    elseif type == "trunk" then
+        return self.plate
+    elseif type == "deposit" then
+        return self.name
+    elseif type == "items" then
+        return "stash:"..self.identifier
+    end
+end
+
+GetuPlayerIdentifier = function(source)
+    for k,v in pairs(GetPlayerIdentifiers(source))do                            
+        if Config.Database.Identifier == "steam" and v:find("steam:") then
+            return v
+        elseif Config.Database.Identifier == "license" and v:find("license:") then
+            return v
+        end
+    end
 end
 
 AddItemInternal = function(name, quantity, data, self)
+    check({name = "string", quantity = "number"})
+
     local type = IdentifyType(self)
     local inv = self[type]
     local item = FindItem(name, inv, data)
 
     if not item then -- If dont exist
-        print("Dont exist")
-        print(json.encode(inv))
         table.insert(inv, {name, quantity, data})
+
+        Log("Item", "Added "..quantity.." of '"..name.."' to "..GetName(self, type)..""..(data and " with data "..json.encode(data) or "").." [Dont exist, created]")
     else -- Already exist
-        print("Already exist")
-        print(json.encode(item))          
-        item[2] = item[2] + quantity 
+        item[2] = item[2] + quantity
+
+        Log("Item", "Added "..quantity.." of '"..name.."' to "..GetName(self, type)..""..(data and " with data "..json.encode(data) or "").." [Already exist, added]")
     end
     
     -- Weight calculation
@@ -225,20 +362,24 @@ AddItemInternal = function(name, quantity, data, self)
 end
 
 RemoveItemInternal = function(name, quantity, data, self)
+    check({name = "string", quantity = "number"})
+
     local type = IdentifyType(self)
     local inv = self[type]
-    local item = FindItem(name, inv, data)
+    local item, index = FindItem(name, inv, data)
     
     if not item then
-        print("[RemoveItem] Item "..name.." dont exist")
+        error("RemoveItem: The inventory \""..type.."\" dont have the item "..name)
         return
     end
 
     item[2] = item[2] - quantity
 
     if item[2] <= 0 then 
-        item = nil
+        table.remove(inv, index)
     end
+
+    Log("Item", "Removed "..quantity.." of '"..name.."'"..(data and " with data "..json.encode(data) or "").." from "..GetName(self, type))
 
     -- Weight calculation
     if Config.Inventory.Type == "weight" then
@@ -247,7 +388,46 @@ RemoveItemInternal = function(name, quantity, data, self)
     end
 end
 
+GetItemInternal = function(name, data, inv)
+    check({name = "string", inv = "table"})
+
+    local item = FindItem(name, inv, data)
+    return {
+        quantity = item[2] or 0, 
+        label = Config.Labels["items"][name] or name, 
+        [Config.Inventory.Type] = Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight, 
+        data = item[3] or {}, 
+        __type = "item",
+
+        found = item ~= false
+    }
+end
+
+CanCarryItemInternal = function(item, quantity, self)
+    local weight_limit = Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight
+
+    if Config.Inventory.Type == "weight" then
+        if (self.weight + (weight_limit * quantity)) > self.maxWeight then
+            return false
+        else
+            return true
+        end
+    elseif Config.Inventory.Type == "limit" then
+        local type = IdentifyType(self)
+        local inv = self[type]
+        local itemq = GetItemInternal(item, nil, inv)
+
+        if (itemq + quantity) <= weight_limit then
+            return true
+        else
+            return false
+        end
+    end
+end
+
 HaveItemQuantityInternal = function(name, quantity, data, inv)
+    check({name = "string", quantity = "number", inv = "table"})
+
     local item = FindItem(name, inv, data)
 
     if item then
@@ -256,8 +436,6 @@ HaveItemQuantityInternal = function(name, quantity, data, inv)
         return nil
     end
 end
-
-
 
 --// Converters
 ESXConvertTemplate = {
@@ -290,7 +468,7 @@ ESXConvertTemplate = {
             "function", 
             ".AddMoney", 
             function(line, params)
-                return line:gsub(params[1], '"money", '..params[1])
+                return line:gsub(params[1], '"cash", '..params[1])
             end
         },
         ["%.addWeapon"] = {
@@ -339,7 +517,7 @@ ESXConvertTemplate = {
         },
         ["%.getIdentifier"] = {
             "function", 
-            ".steam", 
+            ".identifier", 
             function(line, params)
                 return line:gsub("%(%)", "")
             end
@@ -377,7 +555,7 @@ ESXConvertTemplate = {
             "function", 
             ".GetMoney", 
             function(line, params)
-                return line:gsub("%(%)", '("cash").count')
+                return line:gsub("%(%)", '("cash").quantity')
             end
         },
         ["%.getName"] = {
@@ -816,7 +994,7 @@ function ConvertFramework(template, resource, path)
                         line, needmanual = v[3](line, UnpackParameters(params))
 
                         if needmanual then
-                            print("^1"..resource.."/"..path..":"..linenumber.." has a function that requires manual adjustment! [RegEx "..k.."]^0")
+                            print("^1"..resource.."/"..path..":"..linenumber.." has a function that requires manual adjustment! [Pattern: "..k.."]^0")
                         end
                     else
                         line = line:gsub(k, v[2])

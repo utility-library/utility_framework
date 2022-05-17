@@ -18,12 +18,15 @@ Utility = {
     PlayersData     = {},
     VehiclesData    = {},
     SocietyData     = {},
+    Stashes         = {},
+
     JobWorker       = {},
+    Hooks           = {},
 
     Bans = {},        
     
     -- TBP Token (Trigger Basic Protection)
-    Token = math.random(0, 999999999999999999)
+    Token = mathm.randoms(20, true)
 }
 
 -- For function _ auto translation in the server loader

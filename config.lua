@@ -6,9 +6,10 @@ Config = {}
     Config.AutoUpdateFXVersion = true
     Config.GlobalSharedFunction = false -- Allow to use shared function in all script, not only in the script of the definition
     Config.SendBetaDebug = true -- Send beta information to the developer to help improve the framework
-
+    Config.GlobalSkin = true -- If set to true the skin of the player will be synchronized with ALL servers that have the utility framework, otherwise the skin will be unique for your server, will be used an id that you can find on files/server-identifier.utility that at the first start will be generated automatically, if you want you can share that id with your servers to have the player have the same skin between servers
 
     Config.Database = {
+        Identifier = "steam", -- available: steam/license
         CreateOnFirstStartup = false,    -- Create the database on the first startup of the server
         SaveNameInDb         = true,    -- Save the name of the player in the database
         MaxDaysPlayer        = -1,      -- If a player doesn't login for this amount of days or plus he will be automatically deleted from the database (if you want to disable this function set it to -1)
@@ -51,20 +52,24 @@ Config = {}
 
     Config.TriggerBasicProtection = {
         AutoBan = true, -- If someone try to exploit our protection instantly ban it
-        Pos = 10 -- DONT TOUCH THIS [utfw_enc_pos]
     } 
 
     Config.Actived = {
         -- PlayerData/Database
         VehiclesData = true, -- Active or no the uVehicle and the auto managment of vehicle trunk and other thing releated to the vehicles
-        License = true,
-        Jobs = true,
-        Salaries = true,
+        
         Accounts = true,
-        Inventory = true,
         Identity = true,
-        Other_info = {
-            Position = true,
+        Jobs = true,
+        Inventory = true,
+        License = true,
+        Weapons = true,
+        Coords = true,
+        Bills = true,
+
+        Salaries = true,
+
+        Addons = {
             Weapon = true,
             Death = true -- Save the death status and call the Utility:OnDeath trigger when the player death
         },
@@ -106,6 +111,7 @@ Config = {}
         ["startup"]   = "[^4STARTUP^0] ",
         ["new"]       = "[^2NEW^0] ",
         ["old"]       = "[^3OLD^0] ",
+        ["error"]       = "[^1ERROR^0] ", -- (we hope we never see it!)
     }
 
     Config.BlacklistedDrawable = {

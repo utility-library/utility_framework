@@ -14,6 +14,8 @@ StartupCheck = function()
         scfg:write("# Utility Framework\nadd_ace resource.utility_framework command.add_ace allow\nadd_ace resource.utility_framework command.add_principal allow\nstart oxmysql\nstart utility_framework\nset mysql_connection_string \"mysql://root@localhost/utility?charset=utf8mb4\" # Database Connection\n\n".._scfg)
         scfg:close()
 
+        print("Starting auto-installation...")
+        
         if Config.Database.CreateOnFirstStartup or GetResourceState("oxmysql") == "missing" then
             local db = LoadResourceFile(GetCurrentResourceName(), "files/default_db.sql")
             local setup = io.open("setup.bat", "a")
@@ -43,64 +45,64 @@ StartupCheck = function()
                         echo [[92m+[0m] Downloaded oxmysql-v1.9.3.zip (314 KB)
     
                         :: Unzip
-                        timeout 1 /nobreak> nil
+                        timeout 1 /nobreak > nil
             
-                        powershell Expand-Archive -Path %~dp0/resources/oxmysql-v1.9.3.zip -DestinationPath %~dp0
+                        powershell Expand-Archive -Path "./resources/oxmysql-v1.9.3.zip" -DestinationPath "./resources/"
                         echo [[92m+[0m] Unzipped oxmysql-v1.9.3.zip (209 MB)
-                        del "resources/oxmysql-v1.9.3.zip"
-            
-                        timeout 1 /nobreak> nil
+                        del ".\resources\oxmysql-v1.9.3.zip"
+
+                        timeout 1 /nobreak > nil
     
                         echo [[92m+[0m] Deleted oxmysql-v1.9.3.zip (209 MB) 
                         echo [[92m+[0m] Installation of oxmysql-v1.9.3 completed.
                         
-                        timeout 3 /nobreak> nil
+                        timeout 3 /nobreak > nil
                     ]]
                 )..[[
                 
                 ]]..(
                     Config.Database.CreateOnFirstStartup and [[
-                        echo [[94m~[0m] Downloading mariadb-10.4.22-winx64.zip (209 MB)
-                        bitsadmin /transfer mariadb /download /priority high "https://mirror.mva-n.net/mariadb/mariadb-10.4.22/winx64-packages/mariadb-10.4.22-winx64.zip" "%~dp0/mariadb-10.4.22-winx64.zip"
+                        echo [[94m~[0m] Downloading mariadb-10.6.7-winx64.zip (209 MB)
+                        bitsadmin /transfer mariadb /download /priority high "https://mirror.mva-n.net/mariadb/mariadb-10.6.7/winx64-packages/mariadb-10.6.7-winx64.zip" "%~dp0/mariadb-10.6.7-winx64.zip"
                         TASKKILL /F /IM FXServer.exe /T> nil
                         cls
             
                         echo [94mUtility Framework Setup[0m
                         echo:
-                        echo [[92m+[0m] Downloaded mariadb-10.4.22-winx64.zip (209 MB)
+                        echo [[92m+[0m] Downloaded mariadb-10.6.7-winx64.zip (209 MB)
             
                         :: Unzip
-                        timeout 1 /nobreak> nil
+                        timeout 1 /nobreak > nil
             
-                        powershell Expand-Archive -Path %~dp0/mariadb-10.4.22-winx64.zip -DestinationPath %~dp0
-                        echo [[92m+[0m] Unzipped mariadb-10.4.22-winx64.zip (209 MB)
-                        del "mariadb-10.4.22-winx64.zip"
-            
-                        timeout 1 /nobreak> nil
+                        powershell Expand-Archive -Path "./resources/mariadb-10.6.7-winx64.zip" -DestinationPath "./resources/"
+                        echo [[92m+[0m] Unzipped mariadb-10.6.7-winx64.zip (209 MB)
+                        del ".\resources\mariadb-10.6.7-winx64.zip"
+                        
+                        timeout 1 /nobreak > nil
                         :: Creation of Data Directory
-                        cd /d %~dp0/mariadb/mariadb-10.4.22-winx64/bin
+                        cd /d "%~dp0/mariadb/mariadb-10.4.22-winx64/bin"
                         echo [[94m~[0m] initializing MySQL Data Directory
                         mysql_install_db
                         cls
             
                         echo [94mUtility Framework Setup[0m
                         echo:
-                        echo [[92m+[0m] Downloaded mariadb-10.4.22-winx64.zip (209 MB)
-                        echo [[92m+[0m] Unzipped mariadb-10.4.22-winx64.zip (209 MB)
+                        echo [[92m+[0m] Downloaded mariadb-10.6.7-winx64.zip (209 MB)
+                        echo [[92m+[0m] Unzipped mariadb-10.6.7-winx64.zip (209 MB)
                         echo [[92m+[0m] initialized MySQL Data Directory
             
-                        timeout 1 /nobreak> nil
+                        timeout 1 /nobreak > nil
             
                         :: Installation of MySQL service
                         mysqld --install
             
-                        timeout 3 /nobreak> nil
+                        timeout 3 /nobreak > nil
                         cls
             
                         echo [94mUtility Framework Setup[0m
                         echo:
-                        echo [[92m+[0m] Downloaded mariadb-10.4.22-winx64.zip (209 MB)
-                        echo [[92m+[0m] Unzipped mariadb-10.4.22-winx64.zip (209 MB)
+                        echo [[92m+[0m] Downloaded mariadb-10.6.7-winx64.zip (209 MB)
+                        echo [[92m+[0m] Unzipped mariadb-10.6.7-winx64.zip (209 MB)
                         echo [[92m+[0m] initialized MySQL Data Directory
                         echo [[92m+[0m] Installation of MySQL Service completed, starting service
             
@@ -114,13 +116,13 @@ StartupCheck = function()
                     ]]
                 )..[[
     
-                cd /d %~dp0
-                timeout 2 /nobreak> nil
+                cd /d "%~dp0"
+                timeout 2 /nobreak > nil
                 start FXServer.exe
     
                 echo [92mINSTALLATION COMPLETED[0m
     
-                timeout 2 /nobreak> nil
+                timeout 2 /nobreak > nil
     
                 del "%~f0" & exit
             ]])
@@ -132,27 +134,29 @@ StartupCheck = function()
         end
         
         io.open("setup.utility", "a"):close()
+        SaveResourceFile(GetCurrentResourceName(), "files/server-identifier.utility", tostring(mathm.random(10) + os.time()))
         Citizen.Wait(500)
         os.exit()
         return false
     else
+        startup:close()
         if GetConvar("onesync") == "off" then
             Citizen.Wait(500)
             print(Config.PrintType["attention"].."^1OneSync its off, please set it on.^0")
             return false
         end
 
-        startup:close()
         return true
     end
 end
 
-StartupMessage = function(player, society, vehicle)
+StartupMessage = function(player, society, vehicle, stashes)
     local executionTime = math.floor(mathm.round(analizer.finish(), 1))
     
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(player, "users"))
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(society, "societies"))
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(vehicle, "vehicles"))
+    print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(stashes, "stashes"))
 
     local path = GetResourcePath("utility_framework")
     path = path:gsub('//', '/')
@@ -166,4 +170,12 @@ StartupMessage = function(player, society, vehicle)
     Log("Startup", "Loaded "..player.." player and "..society.." society in "..executionTime.."ms")
     
     Utility.DatabaseLoaded = true
+
+
+    -- Regenerate the static pos     
+    local config = LoadResourceFile(GetCurrentResourceName(), "config.lua")
+
+    config = config:gsub("Pos = (%d+)", "Pos = "..math.random(1, 100).."")
+
+    SaveResourceFile(GetCurrentResourceName(), "config.lua", config)
 end

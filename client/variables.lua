@@ -1,7 +1,7 @@
 Citizen.CreateThreadNow(function()
     TriggerServerEvent("Utility:Loaded")
-    while LocalPlayer.state.steam == nil do
-        print("Dont loaded uPlayer")
+    while LocalPlayer.state.identifier == nil do
+        print("Dont loaded uPlayer", LocalPlayer.state.identifier)
         Citizen.Wait(1)
     end
     print("Loaded uPlayer")

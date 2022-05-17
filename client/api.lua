@@ -1,10 +1,19 @@
 --// Variables
 local id = GetPlayerServerId(PlayerId())
-local utilityDataHandle = nil
+
+local Keys = {
+    Public = nil,
+    Private = nil,
+    Token = nil
+}
+
+local privateKey, publicKey = nil, nil
+local utilityDataHandle = ""
+
 local SavedTriggerServerEvent = TriggerServerEvent
 
+Utility = exports["utility_framework"]
 oxmysql = exports["oxmysql"]
-utfw = exports["utility_framework"]
 ResourceName = GetCurrentResourceName()
 
 --// InternalFunctions
@@ -15,11 +24,17 @@ function uPlayerPopulate()
             if k == "vehicle" or k == "veh" then
                 return GetVehiclePedIsIn(uPlayer.ped)
             elseif k == "coords" then
-                return GetEntityCoords(uPlayer.ped)
+                if GetCurrentResourceName() == "utility_framework" then
+                    return LocalPlayer.state.coords
+                else
+                    return GetEntityCoords(uPlayer.ped)
+                end
             elseif k == "heading" then
                 return GetEntityHeading(uPlayer.ped)
             elseif k == "weapon" then
                 return GetSelectedPedWeapon(uPlayer.ped)
+            elseif k == "armed" then
+                return IsPedArmed(uPlayer.ped, 4)
             elseif k == "weaponModel" then
                 return GetCurrentPedWeaponEntityIndex(uPlayer.ped)
             elseif k == "id" then
@@ -65,78 +80,75 @@ function uPlayerPopulate()
     -- Assigning functions to the uPlayer
         -- Money
             GetMoney = function(type)
-                return utfw:GetMoney(type)
+                return exports["utility_framework"]:GetMoney(type)
             end
 
             HaveMoneyQuantity = function(type, quantity)
-                return utfw:HaveMoneyQuantity(type, quantity)
+                return exports["utility_framework"]:HaveMoneyQuantity(type, quantity)
             end
         -- Item
             GetItem = function(name, itemid)
-                return utfw:GetItem(name, itemid)
-            end
-            GetItemIds = function(name)
-                return utfw:GetItemIds(name)
+                return exports["utility_framework"]:GetItem(name, itemid)
             end
             IsItemUsable = function(name, id)
-                return utfw:IsItemUsable(name, id)
+                return exports["utility_framework"]:IsItemUsable(name, id)
             end
 
             UseItem = function(name, id)
-                utfw:UseItem(name, id)
+                exports["utility_framework"]:UseItem(name, id)
             end
             
             HaveItemQuantity = function(name, quantity)
-                return utfw:HaveItemQuantity(name, quantity)
+                return exports["utility_framework"]:HaveItemQuantity(name, quantity)
             end
             CanCarryItem = function(name, quantity)
-                return utfw:CanCarryItem(name, quantity)
+                return exports["utility_framework"]:CanCarryItem(name, quantity)
             end
         -- Weapon
             AddWeapon = function(weapon, ammo, equipNow)
-                utfw:AddWeapon(weapon, ammo, equipNow)
+                exports["utility_framework"]:AddWeapon(weapon, ammo, equipNow)
             end
 
             RemoveWeapon = function(weapon)
-                utfw:RemoveWeapon(weapon)
+                exports["utility_framework"]:RemoveWeapon(weapon)
             end
 
             GetWeapons = function()
-                return utfw:GetWeapons()
+                return exports["utility_framework"]:GetWeapons()
             end
 
             GetWeaponLabel = function(name)
-                return FWConfig.Labels["weapons"][name] or name
+                return uConfig.Labels["weapons"][name] or name
             end
 
             HaveWeapon = function(name)
-                return utfw:HaveWeapon(name)
+                return exports["utility_framework"]:HaveWeapon(name)
             end
         -- License
             GetLicenses = function()      
-                return utfw:GetLicenses()
+                return exports["utility_framework"]:GetLicenses()
             end
 
             HaveLicense = function(name)
-                return utfw:HaveLicense(name)
+                return exports["utility_framework"]:HaveLicense(name)
             end
         -- Identity
             GetIdentity = function(data)
-                return utfw:GetIdentity(data)
+                return exports["utility_framework"]:GetIdentity(data)
             end
         -- Billing
             GetBills = function()
-                return utfw:GetBills()
+                return exports["utility_framework"]:GetBills()
             end
 
         -- IsDead
             IsDead = function()
-                return utfw:IsDead()
+                return exports["utility_framework"]:IsDead()
             end
 
         -- Other info integration
             Get = function(id)
-                return utfw:Get(id)
+                return exports["utility_framework"]:Get(id)
             end
         
         -- Societies 
@@ -146,7 +158,7 @@ function uPlayerPopulate()
 
         -- Vehicle
             SpawnOwnedVehicle = function(plate, coords, network)
-                local veh = utfw:GetVehicle(plate)
+                local veh = exports["utility_framework"]:GetVehicle(plate)
 
                 RequestModel(veh.data.model)
                 
@@ -161,7 +173,7 @@ function uPlayerPopulate()
 
         -- Config
             FrameworkConfig = function(field)
-                return utfw:Config(field)
+                return exports["utility_framework"]:Config(field)
             end
 
     while not LocalPlayer.state.loaded do
@@ -172,7 +184,7 @@ end
 
 function uVehiclePopulate()
     GetVehicle = function(plate)
-        local uVehicle = utfw:GetVehicle(plate)
+        local uVehicle = exports["utility_framework"]:GetVehicle(plate)
 
         return setmetatable({}, {
             __index = function(_, k)
@@ -201,9 +213,34 @@ Citizen.CreateThread(function()
     end
 end)
 
-Citizen.CreateThreadNow(function()
+Citizen.CreateThread(function()
+    while GetResourceState("utility_framework") ~= "started" do Citizen.Wait(50) end
+    Keys.Public, Keys.Private = exports["utility_framework"]:GenerateKeys()
+
+    local func = exports["utility_framework"]:UtilityOnTop(Keys.Public)
+
+    while not func do 
+        func = exports["utility_framework"]:UtilityOnTop(Keys.Public) 
+        Citizen.Wait(50) 
+    end
+
+    local encrypted = func()
+
+    print("[^2API^0] ^3Recieved encrypted token from tbp client^0")
+    Keys.Token = exports["utility_framework"]:Decrypt(Keys.Private, encrypted)
+    print("[^2API^0] ^3Decrypted token: "..Keys.Token.."^0")
+
+    collectgarbage("collect") -- Collect garbage to free memory
+end)
+
+Citizen.CreateThread(function()
+    while GetResourceState("utility_framework") ~= "started" do
+        Citizen.Wait(1)
+    end
+
     uPlayerPopulate() -- Populating uPlayer
     uVehiclePopulate()
+    GetStash = function(identifier, replicate) return exports["utility_framework"]:GetStash(identifier, replicate) end
 
     Citizen.Wait(10)
     if Load then
@@ -213,8 +250,10 @@ end)
 
 --// Callback
 RegisterClientCallback = function(name, _function)
-    RegisterNetEvent("Utility:External:CCallback_c:"..name)
-    AddEventHandler("Utility:External:CCallback_c:"..name, function(...)
+    local name = enc.Utf8ToB64(name) -- Use the same format of secured events
+
+    RegisterNetEvent("Utility:External:"..name)
+    AddEventHandler("Utility:External:"..name, function(...)
         local source = source
         source = source
         
@@ -222,43 +261,45 @@ RegisterClientCallback = function(name, _function)
         local _cb = table.pack(_function(...))
 
         if table.unpack(_cb) ~= nil then
-            SavedTriggerServerEvent("Utility:External:CCallback_s:"..name, _cb)
+            SavedTriggerServerEvent("Utility:External:"..name, _cb)
         end
     end)
 end
 
 TriggerServerCallbackAsync = function(name, _function, ...)
     local eventHandler = nil
-    local b64nameC = enc.Utf8ToB64(name.."_l")
+    local b64nameC = enc.Utf8ToB64(name) -- Prevent noobies to know if a event is a callback or not
 
+    -- Register a new event to handle the callback from the server
     RegisterNetEvent(b64nameC)
     eventHandler = AddEventHandler(b64nameC, function(data)
         if type(_function) == "function" then _function(table.unpack(data)) end
         RemoveEventHandler(eventHandler)
     end)
     
-    TriggerServerEvent(name, ...)
+    TriggerServerEvent(name, ...) -- Trigger the server event to get the data
 end
 
 TriggerServerCallbackSync = function(name, ...)
     local p = promise.new()        
     local eventHandler = nil
-    local b64nameC = enc.Utf8ToB64(name.."_l")
+    local b64nameC = enc.Utf8ToB64(name)
 
+    -- Register a new event to handle the callback from the server
     RegisterNetEvent(b64nameC)
     eventHandler = AddEventHandler(b64nameC, function(data)
         RemoveEventHandler(eventHandler)
         p:resolve(data)
     end)
 
-    TriggerServerEvent(name, ...)
+    TriggerServerEvent(name, ...) -- Trigger the server event to get the data
     return table.unpack(Citizen.Await(p))
 end
 
 local INTERNALTriggerServerCallbackSync = function(name, ...)
     local p = promise.new()        
     local eventHandler = nil
-    local b64nameC = enc.Utf8ToB64(name.."_l")
+    local b64nameC = enc.Utf8ToB64(name)
 
     RegisterNetEvent(b64nameC)
     eventHandler = AddEventHandler(b64nameC, function(data)
@@ -309,51 +350,48 @@ local EmitterEvents = {
 
     "VehicleBought",
     "VehicleTransferedToPlayer",
+
+    "StashItemAdded",
+    "StashItemRemoved",
+    "StashItemInserted",
+    "StashItemTaken",
 }
 
-Citizen.CreateThread(function()
-    FWConfig = utfw:Config()
-    local pos = FWConfig.TriggerBasicProtection.Pos
-    FWConfig.TriggerBasicProtection.Pos = nil
+function LoadShared(index)
+    --print("Loaded shared function: " .. GlobalState.SharedFunction[i])
+    local formattedName = GlobalState.SharedFunction[index]:gsub(ResourceName..":", "")
 
-    TriggerEvent("Utility:RequestBasicData", function(data) 
-        utilityDataHandle = data:gsub(".", function(c) return math.floor(c - pos) end)
-    end)
+    load(formattedName..[[ = function(...)
+            --print("SharedFunction:]]..GlobalState.SharedFunction[index]..[[",...)
 
+            -- Dont know if it works
+            local thread, main = coroutine.running()
+
+            if main then
+                print("^1@utility_framework: Tried to call the shared function \"]]..formattedName..[[\" but shared functions can't be called from main thread, create a new thread with Citizen.CreateThread^0")
+            else
+                return TriggerServerCallbackSync("SharedFunction:]]..GlobalState.SharedFunction[index]..[[", ...)
+            end
+        end
+    ]])()
+end
+
+Citizen.CreateThreadNow(function()
+    uConfig = exports["utility_framework"]:Config()
 
     -- SharedFunctions
-    for i=1, #GlobalState.SharedFunction do
-        local function LoadShared()
-            --print("Loaded shared function: " .. GlobalState.SharedFunction[i])
-            local formattedName = GlobalState.SharedFunction[i]:gsub(ResourceName..":", "")
-
-            load(formattedName..[[ = function(...)
-                    --print("SharedFunction:]]..GlobalState.SharedFunction[i]..[[",...)
-
-                    -- Dont know if it works
-                    if #{...} > 0 then
-                        print("Callback")
-                        return TriggerServerCallbackSync("SharedFunction:]]..GlobalState.SharedFunction[i]..[[", ...)
-                    else
-                        print("Event")
-                        TriggerServerEvent("SharedFunction:]]..GlobalState.SharedFunction[i]..[[")
-                    end
-                    
-                end
-            ]])()
-        end
-        
-        if not FWConfig.GlobalSharedFunction then
+    for i=1, #GlobalState.SharedFunction do        
+        if not uConfig.GlobalSharedFunction then
             if GlobalState.SharedFunction[i]:find(ResourceName) then
-                LoadShared()
+                LoadShared(i)
             end
         else
-            LoadShared()
+            LoadShared(i)
         end
     end
 
     -- Emitters
-    for k,v in pairs(FWConfig.CustomEmitter) do
+    for k,v in pairs(uConfig.CustomEmitter) do
         if _G[v] then
             RegisterNetEvent("Utility:Emitter:"..v)
             AddEventHandler("Utility:Emitter:"..v, function(...)
@@ -381,10 +419,10 @@ end)
 --// Label
     -- Job
         GetJob = function(job, workers)
-            if FWConfig.Jobs.Configuration[job] then
+            if uConfig.Jobs.Configuration[job] then
                 return {
-                    label = FWConfig.Jobs.Configuration[job].name,
-                    grades = FWConfig.Jobs.Configuration[job].grades,
+                    label = uConfig.Jobs.Configuration[job].name,
+                    grades = uConfig.Jobs.Configuration[job].grades,
                     workers = INTERNALTriggerServerCallbackSync("Utility:GetWorker", job)
                 }
             else
@@ -398,20 +436,20 @@ end)
         end
 
         GetJobWorkers = function(job)
-            print(job)
+            --print(job)
             return INTERNALTriggerServerCallbackSync("Utility:GetWorker", job)
         end
 
         GetJobLabel = function(job)
-            return FWConfig.Jobs.Configuration[job].name
+            return uConfig.Jobs.Configuration[job].name
         end
 
         GetJobGrades = function(job)
-            return FWConfig.Jobs.Configuration[job].grades
+            return uConfig.Jobs.Configuration[job].grades
         end
 
         GetJobGrade = function(job, grade)
-            return FWConfig.Jobs.Configuration[job].grades[grade]
+            return uConfig.Jobs.Configuration[job].grades[grade]
         end
 
 --// Menu
@@ -627,7 +665,7 @@ end)
         
         for i=1, #vehicleList do
             if whitelist then
-                if GetHashKey(vehicleList[i]) == whitelist then
+                if GetEntityModel(vehicleList[i]) == whitelist then
                     local currentDistance = #(GetEntityCoords(vehicleList[i]) - coords)
 
                     if currentDistance <= (radius or 0.5) and currentDistance < closestVeh.distance then
@@ -799,25 +837,41 @@ end)
     end
 
     local a2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    local h=function(a)local b=math.random(1,9999999999)local c=math.random(1,9999)local d;if not d then d={}for e=0,127 do local f=-1;repeat f=f+2 until f*(2*e+1)%256==1;d[e]=f end end;local g,h=b,16384+c;return a:gsub('.',function(i)local j=g%274877906944;local k=(g-j)/274877906944;local e=k%128;i=i:byte()local l=(i*d[e]-(k-e)/128)%256;g=j*h+k+l+i;return('%02x'):format(l)end),b.." "..c end
     local i=function(a)return(a:gsub('.',function(b)local c,a2='',b:byte()for d=8,1,-1 do c=c..(a2%2^d-a2%2^(d-1)>0 and'1'or'0')end;return c end)..'0000'):gsub('%d%d%d?%d?%d?%d?',function(b)if#b<6 then return''end;local e=0;for d=1,6 do e=e+(b:sub(d,d)=='1'and 2^(6-d)or 0)end;return a2:sub(e+1,e+1)end)..({'','==','='})[#a%3+1]end
 
-    local b={}
+    local RequestPublicKey = function()
+        local event = nil
+        local p = promise:new()
+        RegisterNetEvent("Utility:RequestPublicKey")
+        event = AddEventHandler("Utility:RequestPublicKey", function(ServerPublicKey)
+            print("[^2API^0] ^3Recieved server public key^0")
+            RemoveEventHandler(event)
+            p:resolve(ServerPublicKey)
+        end)
+
+        SavedTriggerServerEvent("Utility:RequestPublicKey")
+        
+        return Citizen.Await(p)
+    end
+
     TriggerServerEvent=function(c,...)
-        while utilityDataHandle == nil do
+        while Keys.Token == nil do
             Citizen.Wait(1)
         end
         
-        local d,e=h(utilityDataHandle)
-        if b[d] then 
-            while b[d]do d,e=h(utilityDataHandle) Citizen.Wait(1) end 
+        -- Request server a public RSA Key (to share information securely)
+        if not Keys.ServerPublic then
+            Keys.ServerPublic = RequestPublicKey()
         end
 
-        b[d]=true
+        print("[^2API^0] ^3Encrypting token with server public key^0")
+        local tosend = exports["utility_framework"]:Encrypt(Keys.ServerPublic, Keys.Token)
+        print("[^2API^0] ^3Sending to the server: "..tosend.."^0")
+
 
         --print("[DEBUG] [TBP] Sending server trigger: Encrypted Token  = "..d..", Key  = "..e)
-        local f=i(c)SavedTriggerServerEvent("Utility:External:"..f,d,e,...)
-        print("[DEBUG] [TBP] Sending server trigger: "..c.." => Utility:External:"..f)
+        local f=i(c)SavedTriggerServerEvent("Utility:External:"..f,tosend,...)
+        --print("[DEBUG] [TBP] Sending server trigger: "..c.." => Utility:External:"..f)
     end
 --// Client cache
     SetResourceCache = function(key, value)
@@ -863,6 +917,13 @@ end)
     end)
 
 --// Other
+    CreatePermanentObject = function(...)
+        return TriggerServerCallbackSync("Utility:CreatePermanentObject", ...)
+    end
+    DeletePermanentObject = function(netId)
+        SavedTriggerServerEvent("Utility:DeletePermanentObject", netId)
+    end
+
     SetEntityModel = function(entity, model)
         SavedTriggerServerEvent("Utility:SwapModel", GetEntityCoords(entity), GetEntityModel(entity), type(model) == "string" and GetHashKey(model) or model)
     end
@@ -909,23 +970,39 @@ end)
         return iter
     end
 
+    SaveSkin = function()
+        return exports["utility_framework"]:SaveSkin()
+    end
     GetSkin = function()
-        return utfw:GetSkin()
+        return exports["utility_framework"]:GetSkin()
     end
     GetComponents = function()
-        return utfw:GetComponents()
-    end
-    GetMaxVals = function()
-        return utfw:GetMaxVals()
-    end
-    ApplySkin = function(skin, dontsave)
-        return utfw:ApplySkin(skin, dontsave)
+        return exports["utility_framework"]:GetComponents()
     end
     ResetSkin = function()
-        utfw:ResetSkin()
+        exports["utility_framework"]:ResetSkin()
+    end
+    ApplySkin = function(skin, dontsave)
+        return exports["utility_framework"]:ApplySkin(skin, dontsave)
+    end
+    GetSkinMaxVals = function()
+        return exports["utility_framework"]:GetSkinMaxVals()
     end
     OpenSkinMenu = function(onclose, filter, noexport)
-        utfw:OpenSkinMenu(onclose, filter, noexport)
+        exports["utility_framework"]:OpenSkinMenu(onclose, filter, noexport)
+    end
+
+    -- RSA
+    GenerateKeys = function()
+        return exports["utility_framework"]:GenerateKeys()
+    end
+
+    Encrypt = function(publicKey, data)
+        return exports["utility_framework"]:Encrypt(publicKey, data)
+    end
+
+    Decrypt = function(privateKey, data)
+        return exports["utility_framework"]:Decrypt(privateKey, data)
     end
 
 --// Fix the Enter/Exit vehicle emitters
@@ -934,7 +1011,7 @@ _old_TaskLeaveVehicle = TaskLeaveVehicle
 
 TaskLeaveVehicle = function(ped,vehicle,...)
     if ped == uPlayer.ped and uPlayer.vehicle ~= 0 then
-        TriggerEvent("Utility:Emitter:ExitVehicle", vehicle)
+        EmitEvent("ExitVehicle", vehicle)
     end
 
     _old_TaskLeaveVehicle(ped,vehicle,...)
@@ -944,8 +1021,10 @@ _old_TaskEnterVehicle = TaskEnterVehicle
 
 TaskEnterVehicle = function(ped,vehicle,...)
     if ped == PlayerPedId() and uPlayer.vehicle ~= 0 then
-        TriggerEvent("Utility:Emitter:EnterVehicle", vehicle)
+        EmitEvent("EnterVehicle", vehicle)
     end
 
     _old_TaskEnterVehicle(ped,vehicle,...)
 end
+
+NewStateBag = function(...) exports["utility_framework"]:NewCustomStateBag(...) end

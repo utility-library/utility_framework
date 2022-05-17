@@ -7,11 +7,14 @@
                 end
                 Citizen.Wait(100)
                 SaveSocieties()
+                SaveVehicles()
+                SaveStashes()
                 Citizen.Wait(100)
                 os.exit()
             elseif args[1] == "save" then
                 SaveSocieties()
                 SaveVehicles()
+                SaveStashes()
             elseif args[1] == "create" then
                 if not args[2] then
                     print("^1You need to insert the resource name^0 (example: utility create test)")
@@ -47,13 +50,19 @@
                         local resources = GetResources()
 
                         for i=1, #resources do
-                            --local output = ConvertFramework(ESXConvertTemplate, resource, subd[i])
-                            --SaveResourceFile(resource, subd[i], output)
-
-                            print(resource.." ^4converted^0!")
+                            local resource = resources[i]
+                            local subd = GetResourceLuaFiles(resource)
+                            
+                            for i=1, #subd do
+                                local output = ConvertFramework(ESXConvertTemplate, resource, subd[i])
+                                local relativepath = subd[i]:gsub(GetResourcePath(resource), "")
+                                print("Converted ^2"..relativepath.."^0 ("..resource..")")
+    
+                                SaveResourceFile(resource, subd[i], output)
+                            end
                         end
 
-                        print("Conversion completed, restart the server and adjust any resource that need adjusted!")
+                        print("^1Conversion completed, restart the server!^0")
                     else
                         --print("Started converter esx")
                         local resource = args[3]
@@ -64,29 +73,30 @@
     
                             for i=1, #subd do
                                 local output = ConvertFramework(ESXConvertTemplate, resource, subd[i])
-                                --print("Converted ^3"..subd[i].."^0")
+                                local relativepath = subd[i]:gsub(GetResourcePath(resource), "")
+                                print("Converted ^2"..relativepath.."^0")
     
                                 SaveResourceFile(resource, subd[i], output)
-                                --print("Saved "..subd[i])
                             end
     
-                            --print("FINISHED")
+                            print("^1Conversion completed^0")
                         else
+                            print(Config.PrintType["error"].." Resource \""..resource.."\" doesn't exist!")
                             --print("Resource dont exist")
                         end
                     end
                 end
             elseif args[1] == "unfreeze" then
-                local steam = args[2]
+                local identifier = args[2]
                 
                 local PlayersFrozen = LoadResourceFile(GetCurrentResourceName(), "files/PlayersFrozen.json")
 
                 local lines = ""
                 for line in string.gmatch(PlayersFrozen,'[^\r\n]+') do 
-                    if line:find(steam) then
+                    if line:find(identifier) then
                         local player = json.decode(line)
 
-                        MySQL.Sync.fetchAll("INSERT INTO users (steam, name, accounts, inventory, jobs, identity, other_info) VALUES (:steam, :name, :accounts, :inventory, :jobs, :identity, :other_info)", player)
+                        MySQL.Sync.execute("INSERT INTO users (identifier, name, accounts, identity, jobs, inventory, licenses, weapons, coords) VALUES (:identifier, :name, :accounts, :identity, :jobs, :inventory, :licenses, :weapons, :coords)", player)
                         print("Player ^2"..player.name.."^0 successfully ^4unfrozen^0, good morning sleeping beauty!")
                     else
                         lines = lines .. line .."\n"
@@ -96,18 +106,22 @@
                 SaveResourceFile(GetCurrentResourceName(), "files/PlayersFrozen.json", lines)
 
             elseif args[1] == "freeze" then
-                local steam = args[2]
+                local identifier = args[2]
                 local PlayersFrozen = LoadResourceFile(GetCurrentResourceName(), "files/PlayersFrozen.json")
 
-                local player = MySQL.Sync.fetchAll('SELECT name, accounts, inventory, jobs, identity, other_info, steam, last_quit FROM users WHERE steam = :steam', {
-                    steam = steam
+                local player = MySQL.Sync.fetchAll('SELECT name, accounts, identity, jobs, inventory, licenses, weapons, coords FROM users WHERE identifier = :identifier LIMIT 1', {
+                    identifier = identifier
                 })
-                MySQL.Sync.fetchAll("DELETE FROM users WHERE steam = :steam", {steam = steam})
+                MySQL.Async.execute("DELETE FROM users WHERE identifier = :identifier", {identifier = identifier})
 
                 PlayersFrozen = PlayersFrozen..json.encode(player[1]).."\n"
                 SaveResourceFile(GetCurrentResourceName(), "files/PlayersFrozen.json", PlayersFrozen)
                 
                 print("Player ^2"..player[1].name.."^0 successfully ^4frozen^0, good night!")
+            elseif args[1] == "report" then
+                os.execute('start "" "https://github.com/XenoS-ITA/utility_framework/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D"')
+                print("^2Report opened, please fill the form^0")
+                
             end
         end
     end, true)
@@ -121,7 +135,10 @@
             if args[1] == "0" then args[1] = source end
 
             local uPlayer = GetPlayer(tonumber(args[1]))
-            uPlayer.AddWeapon(args[2], tonumber(args[3]))
+
+            if uPlayer then
+                uPlayer.AddWeapon(args[2], tonumber(args[3]))
+            end
         end
     end)
 
@@ -185,6 +202,15 @@
     end)
 
 -- Item
+    RegisterCommand("testitem", function(source, args)
+        local uPlayer = GetPlayer(source)
+
+        uPlayer.RemoveItem("test", 10, {
+            dio = "cane",
+            serial = "TEST458048"
+        })
+    end)
+
     RegisterCommand("giveitem", function(source, args)
         local uPlayer = GetPlayer(source)
         

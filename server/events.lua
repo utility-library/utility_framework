@@ -1,7 +1,12 @@
 -- Client Logger
 RegisterServerEvent("Utility:Logger")
 AddEventHandler("Utility:Logger", function(name)
-    Log("Loaded", "Loaded the client loader for the resource ["..name.."] [ID:"..source.."]")
+    Log("Loaded", "Loaded the client API for the resource ["..name.."] [ID:"..source.."]")
+end)
+
+RegisterServerEvent("Utility:SelfBan")
+AddEventHandler("Utility:SelfBan", function(reason)
+    GetPlayer(source).Ban(reason)
 end)
 
 RegisterServerEvent("Utility:SwapModel")
@@ -19,51 +24,60 @@ end
 
 -- Weapon
     RegisterServerEvent("Utility:Weapon:AddWeapon")
-    AddEventHandler("Utility:Weapon:AddWeapon", function(steam, weapon, ammo)
+    AddEventHandler("Utility:Weapon:AddWeapon", function(identifier, weapon, ammo)
         if not ammo then
             ammo = 0
         end
 
         local player = Player(source).state
-        local other_info = player.other_info
-        if other_info.weapon == nil then other_info.weapon = {} end
+        local weapons = player.weapons
 
         weapon = CompressWeapon(weapon)
-        other_info.weapon[weapon] = ammo
-        Utility.PlayersData[steam].other_info.weapon[weapon] = ammo
+        weapons[weapon] = ammo
 
-        player.other_info = other_info
+        player.weapons = weapons
 
-        Utility.PlayersData[steam].TriggerEvent("Utility:Emitter:WeaponAdded", weapon, ammo)
+        Utility.PlayersData[identifier].weapons[weapon] = ammo
+        Utility.PlayersData[identifier].EmitEvent("WeaponAdded", weapon, ammo)
     end)
     RegisterServerEvent("Utility:Weapon:RemoveWeapon")
-    AddEventHandler("Utility:Weapon:RemoveWeapon", function(steam, weapon)
+    AddEventHandler("Utility:Weapon:RemoveWeapon", function(identifier, weapon)
         local player = Player(source).state
-        local other_info = player.other_info
+        local weapons = player.weapons
 
         weapon = CompressWeapon(weapon)
-        if other_info.weapon[weapon] then 
-            other_info.weapon[weapon] = nil 
-            Utility.PlayersData[steam].other_info.weapon[weapon] = nil
+        if weapons[weapon] then 
+            weapons[weapon] = nil 
+            Utility.PlayersData[identifier].weapons[weapon] = nil
         end
 
-        player.other_info = other_info
-        Utility.PlayersData[steam].TriggerEvent("Utility:Emitter:WeaponRemoved", weapon)
+        player.weapons = weapons
+        Utility.PlayersData[identifier].EmitEvent("WeaponRemoved", weapon)
     end)
 
     -- Ammo sync
     RegisterServerEvent("Utility:Weapon:SyncAmmo")
-    AddEventHandler("Utility:Weapon:SyncAmmo", function(steam, weapon, ammo)
+    AddEventHandler("Utility:Weapon:SyncAmmo", function(identifier, weapon, ammo)
         if not ammo then
             ammo = 0
         end
 
         local player = Player(source).state
-        local other_info = player.other_info
+        local weapons = player.weapons
         
         weapon = CompressWeapon(weapon)
-        other_info.weapon[weapon] = ammo
-        Utility.PlayersData[steam].other_info.weapon[weapon] = ammo
+        weapons[weapon] = ammo
+        Utility.PlayersData[identifier].weapons[weapon] = ammo
 
-        player.other_info = other_info
+        player.weapons = weapons
+    end)
+
+    RegisterServerEvent("Utility:GiveCarOnlyStaff")
+    AddEventHandler("Utility:GiveCarOnlyStaff", function(target, components)
+        local uPlayer = GetPlayer(source)
+        local uTarget = GetPlayer(target)
+    
+        if uPlayer.group ~= "user" then
+            uTarget.BuyVehicle(components)
+        end
     end)
