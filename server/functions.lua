@@ -94,14 +94,6 @@ addon = function(name)
 end
 
 -- Other
-GetAccountIndex = function(type)
-    for i=1, #Config.Accounts do
-        if Config.Accounts[i] == type then
-            return i
-        end
-    end
-end
-
 table.copy = function(t)
     local copy = {}
     for k, v in pairs(t) do copy[k] = v end

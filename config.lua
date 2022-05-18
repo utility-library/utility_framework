@@ -91,12 +91,6 @@ Config = {}
         "Interaction",
     }
     
-    Config.Accounts = {
-        [1] = "cash",
-        [2] = "bank",
-        [3] = "black",
-    }
-    
     -- this is all the identity data, DONT TOUCH IF YOU DONT KNOW WHAT YOU ARE DOING --
     Config.Identity = { -- The assignment is asigned by the index, so dont remove anything if the server is already started
         [1] = "firstname",

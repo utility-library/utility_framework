@@ -38,6 +38,7 @@ local function BuildFunctions(self)
         self.UpdateClient("data")
     end
 
+    -- Stash methods
     for k,v in pairs(self.trunk) do
         if self[k] == nil and self[k] ~= "save" then
             --print("Creating ",k,v)
@@ -95,49 +96,12 @@ uVehicle = class {
         Utility.VehiclesData[self.plate] = {
             plate     = self.plate,
             data      = self.data,
-            trunk     = self.trunk,
             Build     = self.Build,
             Demolish  = self.Demolish,
             IsBuilded = self.IsBuilded,
         }
     end
 }
-
---[[CreateVehicle = function(self)
-    self.owner = "steam:110000"..self.owner
-
-    self.Build = function()
-        Log("Building", "Vehicle "..self.plate.." builded")
-
-        self.__type = "uVehicle"
-        self = BuildTrunk(self)
-        self = BuildFunctions(self)
-
-        if type(self.data) == "string" then
-            self.data = json.decode(self.data)
-        end
-        if type(self.trunk) == "string" then
-            self.trunk = json.decode(self.trunk)
-        end
-
-        Utility.VehiclesData[self.plate] = self
-    end
-    self.IsBuilded = function()
-        return (Utility.VehiclesData[self.plate].__type ~= nil)
-    end
-    self.Demolish = function()
-        Utility.VehiclesData[self.plate] = {
-            plate     = self.plate,
-            data      = self.data,
-            trunk     = self.trunk,
-            Build     = self.Build,
-            Demolish  = self.Demolish,
-            IsBuilded = self.IsBuilded,
-        }
-    end
-
-    Utility.VehiclesData[self.plate] = self
-end]]
 
 GetVehicle = function(plate)
     if not plate or Utility.VehiclesData[plate] == nil then
@@ -152,7 +116,7 @@ GetVehicle = function(plate)
 end
 
 LoadVehicles = function()
-    local vehicles = MySQL.Sync.fetchAll('SELECT owner, plate, data, trunk FROM vehicles', {})
+    local vehicles = MySQL.Sync.fetchAll('SELECT owner, plate, data FROM vehicles', {})
     if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
 
     for i=1, #vehicles do
@@ -165,8 +129,7 @@ LoadVehicles = function()
         uVehicle({
             owner     = vehicles[i].owner,
             plate     = vehicles[i].plate,
-            data      = vehicles[i].data,
-            trunk     = vehicles[i].trunk,
+            data      = vehicles[i].data
         })
     end
 

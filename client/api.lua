@@ -355,6 +355,15 @@ local EmitterEvents = {
     "StashItemRemoved",
     "StashItemInserted",
     "StashItemTaken",
+
+    "StashMaxWeightSetted",
+    
+    "StashWeaponAdded",
+    "StashWeaponRemoved",
+    
+    "StashMoneyAdded",
+    "StashMoneyRemoved",
+    "StashMoneySetted",
 }
 
 function LoadShared(index)

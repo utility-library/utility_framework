@@ -23,144 +23,6 @@ BuildVehicles = function(self)
 end
 
 BuildFunctions = function(self)
-    -- Money
-    
-        --[[
-            Add money to the society
-
-            type string = Type of the money (bank, cash, black)
-            amount number = Amount of money to add
-        ]]
-        self.AddMoney = function(type, amount)
-            self.money[type] = self.money[type] + tonumber(amount)
-        end
-        
-        --[[
-            Remove money from the society
-
-            type string = Type of the money (bank, cash, black)
-            amount number = Amount of money to remove
-        ]]
-        self.RemoveMoney = function(type, amount)
-            self.money[type] = self.money[type] - tonumber(amount)
-        end
-    
-        --[[
-            Get money from the society
-
-            type string = Type of the money (bank, cash, black)
-
-            return number = Amount of money 
-        ]]
-        self.GetMoney = function(type)
-            return {quantity = self.money[type], label = GetLabel("accounts", nil, type) or type}
-        end
-    
-        --[[
-            Check if the society has money
-
-            type string = Type of the money (bank, cash, black)
-            quantity number = Quantity of money to check
-
-            return [boolean] = True if the society have the money
-        ]]
-        self.HaveMoneyQuantity = function(type, quantity)
-            return self.money[type] >= tonumber(quantity)
-        end
-        
-    -- Inventory
-
-        --[[
-            Add an item to the society
-
-            name string = Name of the item
-            quantity number = Quantity of the item to add
-        ]]
-        self.AddItem = function(name, quantity, data)
-            AddItemInternal(name, quantity, data, self)
-        end
-    
-        --[[
-            Remove an item from the society
-
-            name string = Name of the item
-            quantity number = Quantity of the item to remove
-        ]]
-        self.RemoveItem = function(name, quantity, data)
-            RemoveItemInternal(name, quantity, data, self)
-        end
-    
-        --[[
-            Get an item from the society
-
-            name string = Name of the item
-            
-            return number = Quantity of the item
-        ]]
-        self.GetItem = function(name, data)
-            return GetItemInternal(name, data, self.deposit)
-        end
-    
-        --[[
-            Check if the society have an item
-
-            name string = Name of the item
-            quantity number = Quantity of the item to check
-
-            return [boolean] = True if the society have the item
-        ]]
-        self.HaveItemQuantity = function(name, quantity, data)
-            return HaveItemQuantityInternal(name, quantity, data, self.deposit)
-        end
-
-    -- Weapon
-
-        --[[
-            Add a weapon to the society
-
-            name string = Name of the weapon
-            quantity number = Quantity of the weapon to add
-        ]]
-        self.AddWeapon = function(name, quantity)
-            name = name:lower()
-    
-            if self.weapon[name] then
-                self.weapon[name] = self.weapon[name] + quantity
-            else
-                self.weapon[name] = quantity
-            end
-        end
-
-        --[[
-            Remove a weapon from the society
-
-            weapon string = Name of the weapon
-            quantity number = Quantity of the weapon to remove
-        ]]
-        self.RemoveWeapon = function(name, quantity)
-            name = name:lower()
-    
-            if self.weapon[name] then
-                self.weapon[name] = self.weapon[name] - quantity 
-                
-                if self.weapon[name] <= 0 then 
-                    self.weapon[name] = nil 
-                end
-            end
-        end
-        
-        --[[
-            Check if the society have a weapon
-
-            name string = Name of the weapon
-
-            return [boolean] = True if the society have the weapon
-        ]]
-        self.HaveWeapon = function(name)
-            name = name:lower()
-            return (self.weapon[name] ~= nil)
-        end
-
     -- Billing
 
         --[[
@@ -178,7 +40,6 @@ BuildFunctions = function(self)
         end
     
     -- Vehicles
-
         self.BuyVehicle = function(components)
             check({components = "table"})
 
@@ -191,12 +52,22 @@ BuildFunctions = function(self)
             uVehicle({
                 owner = "society:"..self.name,
                 plate = components.plate[1],
-                data  = json.encode(components),
-                trunk = "[]"
+                data  = json.encode(components)
             })
 
             Log("Society", self.name.." have buyed a vehicle with the plate "..components.plate[1])
         end
+
+
+    -- Stash methods
+    for k,v in pairs(self.deposit) do
+        if self[k] == nil and self[k] ~= "save" then
+            --print("Creating ",k,v)
+            self[k] = v
+        else
+            --print("Skipping",k)
+        end
+    end
 
     -- Add to any method the hook execution
     for k,v in pairs(self) do
@@ -217,8 +88,8 @@ uSociety = class {
         self.__type = "PreuSociety"
 
         self.money       = json.decode(self.money) or {bank = 0, black = 0}
-        self.deposit     = json.decode(self.deposit)
         self.weapon      = json.decode(self.weapon)
+
         self.vehicles    = {}
 
         Utility.SocietyData[self.name] = self
@@ -228,6 +99,11 @@ uSociety = class {
         local start = os.clock()
 
         self.__type = "uSociety"
+        self.deposit     = GetStash("society:"..self.name)
+
+        if self.deposit == nil then -- Dont have an old deposit
+            self.deposit = CreateStash("society:"..self.name, nil, true)
+        end
 
         self = BuildWeight(self)
         self = BuildVehicles(self)
@@ -246,7 +122,6 @@ uSociety = class {
         Utility.SocietyData[self.name] = {
             name      = self.name,
             money     = self.money,
-            deposit   = self.deposit,
             weapon    = self.weapon,
             Build     = self.Build,
             Demolish  = self.Demolish,

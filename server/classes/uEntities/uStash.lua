@@ -13,12 +13,32 @@ local function BuildFunctions(self)
         EmitEvent("StashItemAdded", -1, self.identifier, name, quantity, data)
     end
 
+    self.AddItems = function(table)
+        check({table = "table"})
+
+        for k,v in pairs(table) do
+            if type(v) == "table" then
+                self.AddItem(k, v.quantity, v.data or nil)
+            else
+                self.AddItem(k, v)
+            end
+        end
+    end
+
     self.RemoveItem = function(name, quantity, data)
         RemoveItemInternal(name, quantity, data, self)
 
         Log("Item", "Removed "..quantity.." "..name.." from stash "..self.identifier)
         self.UpdateClient("items")
         EmitEvent("StashItemRemoved", -1, self.identifier, name, quantity, data)
+    end
+
+    self.RemoveItems = function(table)
+        check({table = "table"})
+
+        for k,v in pairs(table) do
+            self.RemoveItem(k, v)
+        end
     end
 
     self.InsertItem = function(source, name, quantity, data)
@@ -46,23 +66,157 @@ local function BuildFunctions(self)
     end
 
     self.GetItem = function(name, data)
-        GetItemInternal(name, data, self.items)
+        return GetItemInternal(name, data, self.items)
+    end
+
+    self.FindItems = function(name, filter)
+        check({name = "string", filter = "table"})
+
+        return FindItems(name, self.items, filter)
     end
 
     self.HaveItemQuantity = function(name, quantity, data)
-        HaveItemQuantityInternal(name, quantity, data, self.items)
+        return HaveItemQuantityInternal(name, quantity, data, self.items)
     end
 
     self.CanCarryItem = function(name, quantity)
         return CanCarryItemInternal(name, quantity, self)
     end
 
-    return self
-end
+    self.SetMaxWeight = function(weight)
+        check({weight = "number"})
 
-local function BuildWeight(self)
-    for _, v in pairs(self.items) do
-        self.weight = self.weight + CalculateItemWeight(v[1], v[2])
+        if Config.Inventory.Type == "weight" then
+            self.maxWeight = weight
+
+            self.UpdateClient("maxWeight")
+            EmitEvent("StashMaxWeightSetted", self.identifier, weight)
+        end
+    end 
+
+
+
+    -- Create the data tables only if its really needed, to save some memory
+    self.CheckWeaponsData = function()
+        if not self.items.weapons then self.items.weapons = {} end
+        self.weapons = self.items.weapons
+    end
+    self.CheckAccountsData = function(type)
+        if not self.items.accounts then self.items.accounts = {} end
+        if not self.accounts then self.accounts = self.items.accounts end
+
+        if self.accounts[type] == nil then self.accounts[type] = 0 end
+    end
+
+    -- Weapon
+
+        --[[
+            Add a weapon to the society
+
+            name string = Name of the weapon
+            quantity number = Quantity of the weapon to add
+        ]]
+        self.AddWeapon = function(name, quantity)
+            self.CheckWeaponsData()
+            name = name:lower()
+    
+            if self.weapons[name] then
+                self.weapons[name] = self.weapons[name] + quantity
+            else
+                self.weapons[name] = quantity
+            end
+
+            EmitEvent("StashWeaponAdded", self.identifier, name, quantity)
+        end
+
+        --[[
+            Remove a weapon from the society
+
+            weapon string = Name of the weapon
+        ]]
+        self.RemoveWeapon = function(name)
+            self.CheckWeaponsData()
+            name = name:lower()
+    
+            if self.weapons[name] then
+                self.weapons[name] = nil
+
+                EmitEvent("StashWeaponRemoved", self.identifier, name)
+            end
+        end
+        
+        --[[
+            Check if the society have a weapon
+
+            name string = Name of the weapon
+
+            return [boolean] = True if the society have the weapon
+        ]]
+        self.HaveWeapon = function(name)
+            self.CheckWeaponsData()
+            name = name:lower()
+            return (self.weapons[name] ~= nil)
+        end
+
+    -- Money
+
+        --[[
+            Add money to the society
+
+            type string = Type of the money (bank, cash, black)
+            amount number = Amount of money to add
+        ]]
+        self.AddMoney = function(type, amount)
+            self.CheckAccountsData(type)
+            self.money[type] = self.money[type] + tonumber(amount)
+
+            EmitEvent("StashMoneyAdded", self.identifier, type, amount)
+        end
+        
+        --[[
+            Remove money from the society
+
+            type string = Type of the money (bank, cash, black)
+            amount number = Amount of money to remove
+        ]]
+        self.RemoveMoney = function(type, amount)
+            self.CheckAccountsData(type)
+            self.money[type] = self.money[type] - tonumber(amount)
+
+            EmitEvent("StashMoneyRemoved", self.identifier, type, amount)
+        end
+
+        self.SetMoney = function(type, amount)
+            self.CheckAccountsData(type)
+            self.money[type] = tonumber(amount)
+
+            EmitEvent("StashMoneySetted", self.identifier, type, amount)
+        end
+    
+        --[[
+            Get money from the society
+
+            type string = Type of the money (bank, cash, black)
+
+            return number = Amount of money 
+        ]]
+        self.GetMoney = function(type)
+            self.CheckAccountsData(type)
+            return {quantity = self.money[type], label = GetLabel("accounts", nil, type) or type}
+        end
+    
+        --[[
+            Check if the society has money
+
+            type string = Type of the money (bank, cash, black)
+            quantity number = Quantity of money to check
+
+            return [boolean] = True if the society have the money
+        ]]
+        self.HaveMoneyQuantity = function(type, quantity)
+            self.CheckAccountsData(type)
+            return self.money[type] >= tonumber(quantity)
+        end
     end
 
     return self
