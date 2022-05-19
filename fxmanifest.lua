@@ -1,6 +1,9 @@
 fx_version "cerulean"
 game "gta5"
 
+author "XenoS.exe#2859"
+version '0.0.1'
+
 client_scripts {
     "config.lua",
     "configs/*.lua",
