@@ -1,5 +1,9 @@
 local JoinedAt = GetGameTimer()
+
+-- Preventing global overwriting
 local invoking, exports = GetInvokingResource, exports
+local LoadResourceFile, GetResourceByFindIndex, GetNumResources = LoadResourceFile, GetResourceByFindIndex, GetNumResources
+
 local loaded = {}
 
 local Keys = {
@@ -37,10 +41,18 @@ end
 exports("UtilityOnTop", function(ClientPublicKey)   
     print("Called UtilityOnTop by "..invoking())
     
-    if Keys.Exposed or Keys.ResExposed then
+    if Keys.Exposed or Keys.ResExposed then -- Prevents the code from being called without actually being requested
         local res = invoking()
 
+        -- Check that the resource that invoked exist
+        -- Check that the resoruce dont have already requested the code
+        -- Check that resource exist in the list of avaiable resources
+        -- And finally check that can request it (by checking the manifest)
+
         if res and not loaded[res] and ResourceExist(res) and CanRequestToken(res) then
+            -- Check that if a resource exposed the token is the same that requested the token 
+            -- (Prevent random resource stop and start of the "infected" resource bypassing the exposed system)
+
             if Keys.ResExposed and res ~= Keys.ResExposed then
                 print(res.." is not the resource that has exposed the token.")
                 return
@@ -51,7 +63,7 @@ exports("UtilityOnTop", function(ClientPublicKey)
 
             print("Sending function to get the token to "..res)
 
-            return function() -- Probably in the executor event loggers there isnt the functions
+            return function() -- Prevent executor event loggers, probably there isnt the functions log
                 print("Encrypting token with api public key")
 
                 while Keys.Token == nil do

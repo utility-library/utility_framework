@@ -83,7 +83,7 @@ UtilityExports = exports["utility_framework"]
         end
 
         GetComponents = function(plate)            
-            return TriggerServerCallbackSync("Utility:GetComponents", plate)
+            return TriggerServerCallback("Utility:GetComponents", plate)
         end
 
         SpawnOwnedVehicle = function(plate, coords, network)

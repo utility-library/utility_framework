@@ -27,7 +27,7 @@ if Config.Addons.Weather.active then
     end)
 
     Citizen.CreateThread(function()
-        hour, minute, weather = TriggerServerCallbackSync("Utility:GetTime")
+        hour, minute, weather = TriggerServerCallback("Utility:GetTime")
         TriggerEvent("Utility:Weather:SetWeather", weather)
 
         while true do

@@ -1,3 +1,16 @@
+local BuildWeight = function(self)
+    if Config.Inventory.Type == "weight" then
+        self.maxWeight = Config.Inventory.MaxWeight
+        self.weight = 0
+    
+        for k,v in pairs(self.items) do
+            self.weight = self.weight + CalculateItemWeight(k, v[2])
+        end
+    end
+
+    return self
+end
+
 local function BuildFunctions(self)
     self.UpdateClient = function(property)
         check({property = "string"})
@@ -217,7 +230,6 @@ local function BuildFunctions(self)
             self.CheckAccountsData(type)
             return self.money[type] >= tonumber(quantity)
         end
-    end
 
     return self
 end

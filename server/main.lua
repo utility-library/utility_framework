@@ -6,42 +6,22 @@ Citizen.CreateThreadNow(function()
 
     analizer.start()
 
-    local vehicle = LoadVehicles()
-    local player  = LoadPlayers()
-    local society = LoadSociety()
+    -- Load uEntities
+    local vehicles = LoadVehicles()
+    local players  = LoadPlayers()
+    local societies = LoadSocieties()
     local stashes = LoadStashes()
     
     -- Loaded Message
     LoadBans()
-    StartupMessage(player, society, vehicle, stashes)
+    StartupMessage(players, societies, vehicles, stashes)
+
+    if GetResourceState("basic-gamemode") == "started" then
+        StopResource("basic-gamemode")
+    end
     return
 end)
 
 
 -- Advertisement
 SetConvarServerInfo("Framework", "Utility")
-
-
-
-
-
-
-
-
-
-
---[[GetPlayer("steam:11000011525c3cc"):Build()
-GetPlayer("steam:11000011525c3cc"):Demolish()
-
-GetVehicle("06DLN645"):Build()
-GetVehicle("06DLN645"):Demolish()
-
-GetSociety("police"):Build()
-GetSociety("police"):Demolish()
-
-for k, v in pairs(Utility.SocietyData) do
-    print("^1Executing^0 "..k)
-    for k,v in pairs(v) do
-        print(k, v, type(v))
-    end
-end]]

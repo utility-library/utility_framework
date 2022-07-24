@@ -1,19 +1,5 @@
-BuildWeight = function(self)
-    if Config.Inventory.Type == "weight" then
-        self.maxWeight = Config.Inventory.MaxWeight
-        self.weight = 0
-    
-        for k,v in pairs(self.deposit) do
-            local _weight = (Config.Inventory.ItemWeight[k] or Config.Inventory.DefaultItemWeight)
-            self.weight = self.weight + (_weight * v[2])
-        end
-    end
-
-    return self
-end
-
 BuildVehicles = function(self)
-    for k,v in pairs(Utility.VehiclesData) do
+    for k,v in pairs(Utility.Vehicles) do
         if v.owner == "society:"..self.name then
             table.insert(self.vehicles, v)
         end
@@ -33,7 +19,7 @@ BuildFunctions = function(self)
             amount number = Amount of the billing
         ]]
         self.CreateBill = function(target, reason, amount)
-            local uPlayer = Utility.PlayersData[GetPlayerIdentifiers(target)[1]]
+            local uPlayer = Utility.Players[GetPlayerIdentifiers(target)[1]]
 
             -- Create the bill for the player            
             uPlayer.CreateBill(self.name, reason, amount)
@@ -92,7 +78,7 @@ uSociety = class {
 
         self.vehicles    = {}
 
-        Utility.SocietyData[self.name] = self
+        Utility.Societies[self.name] = self
     end,
 
     Build = function(self)
@@ -105,13 +91,12 @@ uSociety = class {
             self.deposit = CreateStash("society:"..self.name, nil, true)
         end
 
-        self = BuildWeight(self)
         self = BuildVehicles(self)
         self = BuildFunctions(self)
         
         Log("Building", "uSociety builded for "..self.name.." in "..((os.clock() - start)*1000).." ms")
 
-        Utility.SocietyData[self.name] = self
+        Utility.Societies[self.name] = self
     end,
 
     IsBuilded = function(self)
@@ -119,7 +104,7 @@ uSociety = class {
     end,
 
     Demolish = function(self)
-        Utility.SocietyData[self.name] = {
+        Utility.Societies[self.name] = {
             name      = self.name,
             money     = self.money,
             weapon    = self.weapon,
@@ -131,31 +116,40 @@ uSociety = class {
 }
 
 GetSociety = function(name)
-    if not name or Utility.SocietyData[name] == nil then
+    if not name or Utility.Societies[name] == nil then
         error("GetSociety: no valid society name provided")
     end
 
-    print(Utility.SocietyData[name]:IsBuilded())
-    if not Utility.SocietyData[name]:IsBuilded() then
-        Utility.SocietyData[name]:Build()
+    print(Utility.Societies[name]:IsBuilded())
+    if not Utility.Societies[name]:IsBuilded() then
+        Utility.Societies[name]:Build()
     end
 
-    return Utility.SocietyData[name]
+    return Utility.Societies[name]
 end
 
 
-LoadSociety = function()
-    local society = MySQL.Sync.fetchAll('SELECT name, money, deposit, weapon FROM society', {})
+LoadSocieties = function()
+    local society = MySQL.Sync.fetchAll('SELECT name, money FROM society', {})
     if society == nil then error("Unable to connect with the table `society`, try to check the MySQL status!") return end
 
     for i=1, #society do
         uSociety({
             name      = society[i].name,
             money     = society[i].money,
-            deposit   = society[i].deposit,
-            weapon    = society[i].weapon,
         })
     end
 
     return #society
+end
+
+SaveSocieties = function()
+    Log("Save", "Saving automatically society")
+    
+    for k,v in pairs(Utility.Societies) do
+        MySQL.Sync.execute('UPDATE society SET money = :money WHERE name = :name', {
+            money   = json.encode(v.money),
+            name    = k
+        })
+    end
 end

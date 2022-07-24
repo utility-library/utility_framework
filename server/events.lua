@@ -15,12 +15,12 @@ AddEventHandler("Utility:SwapModel", function(coords, model, newmodel)
 end)
 
 -- Explosion
-if Config.Addons.DisableExplosion then
-    AddEventHandler('explosionEvent', function(sender, ev)
-        Log("Explosion", "Cancelled explosion created by ["..sender.."] "..json.encode(ev).."")
-        CancelEvent()
-    end)
-end
+    if Config.Addons.DisableExplosion then
+        AddEventHandler('explosionEvent', function(sender, ev)
+            Log("Explosion", "Cancelled explosion created by ["..sender.."] "..json.encode(ev).."")
+            CancelEvent()
+        end)
+    end
 
 -- Weapon
     RegisterServerEvent("Utility:Weapon:AddWeapon")
@@ -37,8 +37,8 @@ end
 
         player.weapons = weapons
 
-        Utility.PlayersData[identifier].weapons[weapon] = ammo
-        Utility.PlayersData[identifier].EmitEvent("WeaponAdded", weapon, ammo)
+        Utility.Players[identifier].weapons[weapon] = ammo
+        Utility.Players[identifier].EmitEvent("WeaponAdded", weapon, ammo)
     end)
     RegisterServerEvent("Utility:Weapon:RemoveWeapon")
     AddEventHandler("Utility:Weapon:RemoveWeapon", function(identifier, weapon)
@@ -48,11 +48,11 @@ end
         weapon = CompressWeapon(weapon)
         if weapons[weapon] then 
             weapons[weapon] = nil 
-            Utility.PlayersData[identifier].weapons[weapon] = nil
+            Utility.Players[identifier].weapons[weapon] = nil
         end
 
         player.weapons = weapons
-        Utility.PlayersData[identifier].EmitEvent("WeaponRemoved", weapon)
+        Utility.Players[identifier].EmitEvent("WeaponRemoved", weapon)
     end)
 
     -- Ammo sync
@@ -67,7 +67,7 @@ end
         
         weapon = CompressWeapon(weapon)
         weapons[weapon] = ammo
-        Utility.PlayersData[identifier].weapons[weapon] = ammo
+        Utility.Players[identifier].weapons[weapon] = ammo
 
         player.weapons = weapons
     end)

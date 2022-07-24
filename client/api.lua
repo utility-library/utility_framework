@@ -10,11 +10,14 @@ local Keys = {
 local privateKey, publicKey = nil, nil
 local utilityDataHandle = ""
 
+local msgpack_pack = msgpack.pack
 local SavedTriggerServerEvent = TriggerServerEvent
 
 Utility = exports["utility_framework"]
+Loaded = false
 oxmysql = exports["oxmysql"]
 ResourceName = GetCurrentResourceName()
+ServerIdentifier = nil
 
 --// InternalFunctions
 function uPlayerPopulate()
@@ -206,7 +209,6 @@ function uVehiclePopulate()
     end
 end
 
---// uPlayer
 Citizen.CreateThread(function()
     if Main then
         Main()
@@ -219,6 +221,7 @@ Citizen.CreateThread(function()
 
     local func = exports["utility_framework"]:UtilityOnTop(Keys.Public)
 
+    -- When you join the utility_framework dont load up instantly, so retry until func is defined
     while not func do 
         func = exports["utility_framework"]:UtilityOnTop(Keys.Public) 
         Citizen.Wait(50) 
@@ -230,19 +233,28 @@ Citizen.CreateThread(function()
     Keys.Token = exports["utility_framework"]:Decrypt(Keys.Private, encrypted)
     print("[^2API^0] ^3Decrypted token: "..Keys.Token.."^0")
 
-    collectgarbage("collect") -- Collect garbage to free memory
+    collectgarbage("collect") -- Collect garbage to free memory from the decryption and the keys generation
 end)
 
 Citizen.CreateThread(function()
-    while GetResourceState("utility_framework") ~= "started" do
+    while GetResourceState("utility_framework") ~= "started" do -- wait the framework
         Citizen.Wait(1)
     end
 
+    ServerIdentifier = exports["utility_framework"]:GetServerIdentifier()
     uPlayerPopulate() -- Populating uPlayer
-    uVehiclePopulate()
-    GetStash = function(identifier, replicate) return exports["utility_framework"]:GetStash(identifier, replicate) end
+    uVehiclePopulate() -- Populating uVehicles
+    
+    GetStash = function(identifier, replicate) -- wrapper
+        return exports["utility_framework"]:GetStash(identifier, replicate) 
+    end
 
-    Citizen.Wait(10)
+    while Keys.Token == nil do
+        Citizen.Wait(1)
+    end
+    Citizen.Wait(5)
+
+    Loaded = true
     if Load then
         Load()
     end
@@ -250,7 +262,7 @@ end)
 
 --// Callback
 RegisterClientCallback = function(name, _function)
-    local name = enc.Utf8ToB64(name) -- Use the same format of secured events
+    local name = enc.Utf8ToB64(name) -- Use the same format of secured events (mask the event)
 
     RegisterNetEvent("Utility:External:"..name)
     AddEventHandler("Utility:External:"..name, function(...)
@@ -268,7 +280,7 @@ end
 
 TriggerServerCallbackAsync = function(name, _function, ...)
     local eventHandler = nil
-    local b64nameC = enc.Utf8ToB64(name) -- Prevent noobies to know if a event is a callback or not
+    local b64nameC = enc.Utf8ToB64(name) -- Prevent noobies to know if a event is a callback or not (mask the event)
 
     -- Register a new event to handle the callback from the server
     RegisterNetEvent(b64nameC)
@@ -280,10 +292,10 @@ TriggerServerCallbackAsync = function(name, _function, ...)
     TriggerServerEvent(name, ...) -- Trigger the server event to get the data
 end
 
-TriggerServerCallbackSync = function(name, ...)
+TriggerServerCallback = function(name, ...)
     local p = promise.new()        
     local eventHandler = nil
-    local b64nameC = enc.Utf8ToB64(name)
+    local b64nameC = enc.Utf8ToB64(name) -- Prevent noobies to know if a event is a callback or not (mask the event)
 
     -- Register a new event to handle the callback from the server
     RegisterNetEvent(b64nameC)
@@ -293,21 +305,6 @@ TriggerServerCallbackSync = function(name, ...)
     end)
 
     TriggerServerEvent(name, ...) -- Trigger the server event to get the data
-    return table.unpack(Citizen.Await(p))
-end
-
-local INTERNALTriggerServerCallbackSync = function(name, ...)
-    local p = promise.new()        
-    local eventHandler = nil
-    local b64nameC = enc.Utf8ToB64(name)
-
-    RegisterNetEvent(b64nameC)
-    eventHandler = AddEventHandler(b64nameC, function(data)
-        RemoveEventHandler(eventHandler)
-        p:resolve(data)
-    end)
-
-    SavedTriggerServerEvent(name, ...)
     return table.unpack(Citizen.Await(p))
 end
 
@@ -379,7 +376,7 @@ function LoadShared(index)
             if main then
                 print("^1@utility_framework: Tried to call the shared function \"]]..formattedName..[[\" but shared functions can't be called from main thread, create a new thread with Citizen.CreateThread^0")
             else
-                return TriggerServerCallbackSync("SharedFunction:]]..GlobalState.SharedFunction[index]..[[", ...)
+                return TriggerServerCallback("SharedFunction:]]..GlobalState.SharedFunction[index]..[[", ...)
             end
         end
     ]])()
@@ -432,7 +429,7 @@ end)
                 return {
                     label = uConfig.Jobs.Configuration[job].name,
                     grades = uConfig.Jobs.Configuration[job].grades,
-                    workers = INTERNALTriggerServerCallbackSync("Utility:GetWorker", job)
+                    workers = TriggerServerCallback("Utility:GetWorker", job)
                 }
             else
                 return {
@@ -446,7 +443,7 @@ end)
 
         GetJobWorkers = function(job)
             --print(job)
-            return INTERNALTriggerServerCallbackSync("Utility:GetWorker", job)
+            return TriggerServerCallback("Utility:GetWorker", job)
         end
 
         GetJobLabel = function(job)
@@ -656,159 +653,149 @@ end)
         EndTextCommandDisplayHelp(0, false, true, -1)
     end
 --// Closest
-    GetClosestVehicle = function(coords, radius, whitelist)
-        if whitelist and type(whitelist) == "string" then whitelist = GetHashKey(whitelist) end
-        
-        if type(coords) == "number" then
-            whitelist = radius
-            radius = coords or 0.5
-            coords = GetEntityCoords(PlayerPedId())
+    CheckFilterForEntity = function(entity, filter)
+        local model = GetEntityModel(entity)
+
+        if type(filter) == "table" then
+            for i=1, #filter do
+                if type(filter[i]) == "string" then
+                    filter[i] = GetHashKey(filter[i])
+                end
+
+                if model == filter[i] then
+                    return true
+                end
+            end
+        elseif type(filter) == "string" then
+            return (model == GetHashKey(filter))
+        elseif type(filter) == "number" then
+            return (model == filter)
         end
-        
-        
-        local vehicleList = GetGamePool("CVehicle")
-        local closestVeh = {
-            handle = 0,
+    end
+
+    GetClosestEntity = function(entities, coords, radius, filter)
+        local closest = {
+            handle   = nil,
             distance = 999,
         }
         
-        for i=1, #vehicleList do
-            if whitelist then
-                if GetEntityModel(vehicleList[i]) == whitelist then
-                    local currentDistance = #(GetEntityCoords(vehicleList[i]) - coords)
+        for i=1, #entities do
+            if CheckFilterForEntity(entities[i], filter) then
+                local distance = #(GetEntityCoords(entities[i]) - coords)
 
-                    if currentDistance <= (radius or 0.5) and currentDistance < closestVeh.distance then
-                        closestVeh.handle   = vehicleList[i]
-                        closestVeh.distance = currentDistance
-                    end
-                end
-            else
-                local currentDistance = #(GetEntityCoords(vehicleList[i]) - coords)
-
-                if currentDistance <= (radius or 0.5) and currentDistance < closestVeh.distance then
-                    closestVeh.handle   = vehicleList[i]
-                    closestVeh.distance = currentDistance
+                if radius and ( -- radius ~= nil
+                    distance < radius and distance < closest.distance
+                ) or ( -- radius == nil
+                    distance < closest.distance 
+                ) then
+                    closest.handle   = entities[i]
+                    closest.distance = distance
                 end
             end
         end
 
-        return closestVeh, vehicleList
+        return closest
     end
 
-    GetClosestPed = function(coords, radius, whitelist)
-        if type(coords) == "number" then
-            whitelist = radius
-            radius = coords or 0.5
-            coords = GetEntityCoords(PlayerPedId())
-        end
-
-        --print(radius, coords, whitelist)
-
-        if whitelist and type(whitelist) == "string" then whitelist = GetHashKey(whitelist) end
-        local coords = coords or GetEntityCoords(PlayerPedId())
-
-
-        local pedList = GetGamePool("CPed")
-        local closestPed = {
-            handle = 0,
-            distance = 999,
-        }
+    GetEntitiesInArea = function(entities, coords, radius, filter)
+        local result = {}
         
-        for i=1, #pedList do
-            if whitelist then
-                if GetEntityModel(pedList[i]) == whitelist then
-                    local currentDistance = #(GetEntityCoords(pedList[i]) - coords)
-
-                    if currentDistance <= (radius or 0.5) and currentDistance < closestPed.distance then
-                        closestPed.handle   = pedList[i]
-                        closestPed.distance = currentDistance
-                    end
-                end
-            else
-                local currentDistance = #(GetEntityCoords(pedList[i]) - coords)
-
-                if currentDistance <= (radius or 0.5) and currentDistance < closestPed.distance then
-                    closestPed.handle   = pedList[i]
-                    closestPed.distance = currentDistance
-                end
-            end
-        end
-
-        return closestPed, pedList
-    end
-
-    GetClosestPlayers = function(radius)
-        local peds = GetGamePool("CPed")
-        local players = {}
-
-        for i=1, #peds do
-            if GetEntityModel(peds[i]) == `mp_m_freemode_01` or GetEntityModel(peds[i]) == `mp_f_freemode_01` then
-                local distance = #(GetEntityCoords(peds[i] - GetEntityCoords(PlayerPedId())))
+        for i=1, #entities do
+            if CheckFilterForEntity(entities[i], filter) then
+                local distance = #(GetEntityCoords(entities[i]) - coords)
 
                 if distance < radius then
-                    local player = {
-                        handle = peds[i],
-                        id = NetworkGetPlayerIndexFromPed(peds[i]),
-                        distance = distance
-                    }
-    
-                    table.insert(players, player)
+                    table.insert(result, entities[i])
                 end
             end
         end
 
-        return players
+        return result
     end
 
-    GetClosestPlayer = function(radius)
-        local players = GetClosestPlayers(radius or 5.0)
-        local closestPlayer = {
-            distance = 999,
-        }
+    ---
+
+    GetPeds = function() return GetGamePool("CPed") end
+    GetObjects = function() return GetGamePool("CObject") end
+    GetVehicles = function() return GetGamePool("CVehicle") end
+
+    ---
+    
+    GetClosestObject = function(coords, radius, model)
+        model = type(model) == "string" and GetHashKey(model) or model
+
+        return GetClosestObjectOfType(coords, radius, model)
+    end
+
+    GetClosestVehicle = function(coords, filter)        
+        local vehicles = GetVehicles()
+        coords = coords or GetEntityCoords(uPlayer.ped)
+
+        return GetClosestEntity(vehicles, coords, false, filter)
+    end
+
+    GetClosestPed = function(coords, filter)
+        local peds = GetPeds()
+        coords = coords or GetEntityCoords(uPlayer.ped)
+
+        return GetClosestEntity(peds, coords, false, filter)
+    end
+
+    GetClosestPlayer = function(coords)
+        local players = GetPlayersInArea(coords)
+        coords = coords or GetEntityCoords(uPlayer.ped)
+
+        return GetClosestEntity(players, coords, false)
+    end
+
+    ---
+
+    GetObjectsInArea = function(coords, radius, filter)
+        local objects = GetObjects()
+        coords = coords or GetEntityCoords(uPlayer.ped)
+
+        return GetEntitiesInArea(objects, coords, radius, filter)
+    end
+
+    GetVehiclesInArea = function(coords, radius, filter)
+        local vehicles = GetVehicles()
+        coords = coords or GetEntityCoords(uPlayer.ped)
+
+        return GetEntitiesInArea(vehicles, coords, radius, filter)
+    end
+
+    GetPedsInArea = function(coords, radius, filter)
+        local peds = GetPeds()
+        coords = coords or GetEntityCoords(uPlayer.ped)
+
+        return GetEntitiesInArea(peds, coords, radius, filter)
+    end
+
+    GetPlayersInArea = function(coords, radius)
+        local players = GetActivePlayers()
+        coords = coords or GetEntityCoords(uPlayer.ped)
 
         for i=1, #players do
-            if players[i].distance < closestPlayer.distance then
-                closestPlayer = players[i]
-            end
+            players[i] = GetPlayerPed(players[i])
         end
 
-        return closestPlayer
+        return GetEntitiesInArea(players, coords, radius)
     end
 
-    GetClosestObject = function(coords, radius, model)
-        if type(coords) == "number" then
-            whitelist = radius
-            radius = coords or 0.5
-            coords = GetEntityCoords(PlayerPedId())
+    -- 
+
+    IsAreaClear = function(type, radius)
+        if type == "objects" then
+        elseif type == "vehicles" then
+            return GetObjectsInArea(nil, radius).handle == nil
+            return GetVehiclesInArea(nil, radius).handle == nil
+        elseif type == "peds" then
+            return GetPedsInArea(nil, radius).handle == nil
+        elseif type == "players" then
+            return GetPlayersInArea(nil, radius).handle == nil
         end
-
-        if model and type(model) == "string" then model = GetHashKey(model) end
-
-        local objectList = GetGamePool("CObject")
-        local closestObj = {handle = 0, distance = 999}
-        
-        for i=1, #objectList do
-            if model then
-                if GetEntityModel(objectList[i]) == model then
-                    local currentDistance = #(GetEntityCoords(objectList[i]) - coords)
-
-                    if currentDistance <= (radius or 0.5) and currentDistance < closestObj.distance then
-                        closestObj.handle   = objectList[i]
-                        closestObj.distance = currentDistance
-                    end
-                end
-            else
-                local currentDistance = #(GetEntityCoords(objectList[i]) - coords)
-
-                if currentDistance <= (radius or 0.5) and currentDistance < closestObj.distance then
-                    closestObj.handle   = objectList[i]
-                    closestObj.distance = currentDistance
-                end
-            end
-        end
-
-        return closestObj, objectList
     end
+
 --// Draw
     DrawText2D = function(x, y, text, size, font)
         SetTextScale(size or 0.5, size or 0.5)
@@ -845,42 +832,42 @@ end)
         end
     end
 
-    local a2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    local i=function(a)return(a:gsub('.',function(b)local c,a2='',b:byte()for d=8,1,-1 do c=c..(a2%2^d-a2%2^(d-1)>0 and'1'or'0')end;return c end)..'0000'):gsub('%d%d%d?%d?%d?%d?',function(b)if#b<6 then return''end;local e=0;for d=1,6 do e=e+(b:sub(d,d)=='1'and 2^(6-d)or 0)end;return a2:sub(e+1,e+1)end)..({'','==','='})[#a%3+1]end
+    local RequestPublicKey = function() -- Request the server public key to encrypt the token
+        return TriggerServerCallback("Utility:RequestPublicKey")
+    end
 
-    local RequestPublicKey = function()
-        local event = nil
-        local p = promise:new()
-        RegisterNetEvent("Utility:RequestPublicKey")
-        event = AddEventHandler("Utility:RequestPublicKey", function(ServerPublicKey)
-            print("[^2API^0] ^3Recieved server public key^0")
-            RemoveEventHandler(event)
-            p:resolve(ServerPublicKey)
-        end)
-
-        SavedTriggerServerEvent("Utility:RequestPublicKey")
+    local IsEventSecured = function(name) -- Check if we need to send also the token or not
+        local se = GlobalState.SecuredEvents
         
-        return Citizen.Await(p)
+        for i=1, #se do
+            if se[i] == name then
+                return true
+            end
+        end
     end
 
     TriggerServerEvent=function(c,...)
-        while Keys.Token == nil do
-            Citizen.Wait(1)
+        if IsEventSecured(c) then
+            while Keys.Token == nil do -- Wait the framework
+                Citizen.Wait(1)
+            end
+            
+            -- Request server the public RSA Key (to share information securely)
+            if not Keys.ServerPublic then
+                Keys.ServerPublic = RequestPublicKey()
+            end
+    
+            print("[^2API^0] ^3Encrypting token with server public key^0")
+            local tosend = exports["utility_framework"]:Encrypt(Keys.ServerPublic, Keys.Token)
+            print("[^2API^0] ^3Sending to the server: "..tosend.."^0")
+    
+    
+            --print("[DEBUG] [TBP] Sending server trigger: Encrypted Token  = "..d..", Key  = "..e)
+            local f=enc.Utf8ToB64(c)SavedTriggerServerEvent("Utility:External:"..f,msgpack_pack(tosend),...)
+            --print("[DEBUG] [TBP] Sending server trigger: "..c.." => Utility:External:"..f)
+        else
+            SavedTriggerServerEvent(c, ...)
         end
-        
-        -- Request server a public RSA Key (to share information securely)
-        if not Keys.ServerPublic then
-            Keys.ServerPublic = RequestPublicKey()
-        end
-
-        print("[^2API^0] ^3Encrypting token with server public key^0")
-        local tosend = exports["utility_framework"]:Encrypt(Keys.ServerPublic, Keys.Token)
-        print("[^2API^0] ^3Sending to the server: "..tosend.."^0")
-
-
-        --print("[DEBUG] [TBP] Sending server trigger: Encrypted Token  = "..d..", Key  = "..e)
-        local f=i(c)SavedTriggerServerEvent("Utility:External:"..f,tosend,...)
-        --print("[DEBUG] [TBP] Sending server trigger: "..c.." => Utility:External:"..f)
     end
 --// Client cache
     SetResourceCache = function(key, value)
@@ -927,7 +914,7 @@ end)
 
 --// Other
     CreatePermanentObject = function(...)
-        return TriggerServerCallbackSync("Utility:CreatePermanentObject", ...)
+        return TriggerServerCallback("Utility:CreatePermanentObject", ...)
     end
     DeletePermanentObject = function(netId)
         SavedTriggerServerEvent("Utility:DeletePermanentObject", netId)
@@ -1001,6 +988,9 @@ end)
         exports["utility_framework"]:OpenSkinMenu(onclose, filter, noexport)
     end
 
+    -- Custom State Bag
+    NewStateBag = function(...) exports["utility_framework"]:NewCustomStateBag(...) end
+
     -- RSA
     GenerateKeys = function()
         return exports["utility_framework"]:GenerateKeys()
@@ -1035,5 +1025,3 @@ TaskEnterVehicle = function(ped,vehicle,...)
 
     _old_TaskEnterVehicle(ped,vehicle,...)
 end
-
-NewStateBag = function(...) exports["utility_framework"]:NewCustomStateBag(...) end

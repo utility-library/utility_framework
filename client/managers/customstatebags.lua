@@ -14,7 +14,7 @@ end)
 NewCustomStateBag = function(identifier, request)
     if identifier then
         if request then -- Dont update every time but update only on call
-            StateBags[identifier] = TriggerServerCallbackSync("Utility:GetStateBagValue", identifier)
+            StateBags[identifier] = TriggerServerCallback("Utility:GetStateBagValue", identifier)
         end
 
         if not StateBags[identifier] then

@@ -29,9 +29,8 @@ RegisterServerCallback("Utility:GetToken", function(clientPublicKey)
     end
 end)
 
-RegisterServerEvent("Utility:RequestPublicKey")
-AddEventHandler("Utility:RequestPublicKey", function()
-    TriggerClientEvent("Utility:RequestPublicKey", source, Keys.public)
+RegisterServerCallback("Utility:RequestPublicKey", function()
+    return Keys.public
 end)
 
 exports("GetServerToken", function()

@@ -64,9 +64,11 @@ end
 
 uVehicle = class {
     _Init = function(self)
-        self.data = json.decode(self.data)
+        if type(self.data) == "string" then
+            self.data = Config.TableCompression == "msgpack" and msgpack.unpack(self.data) or json.decode(self.data)
+        end
 
-        Utility.VehiclesData[self.plate] = self
+        Utility.Vehicles[self.plate] = self
     end,
 
     Build = function(self)
@@ -85,7 +87,7 @@ uVehicle = class {
 
         Log("Building", "uVehicle builded for "..self.plate.." in "..((os.clock() - start)*1000).." ms")
 
-        Utility.VehiclesData[self.plate] = self
+        Utility.Vehicles[self.plate] = self
     end,
 
     IsBuilded = function(self)
@@ -93,7 +95,7 @@ uVehicle = class {
     end,
 
     Demolish = function(self)
-        Utility.VehiclesData[self.plate] = {
+        Utility.Vehicles[self.plate] = {
             plate     = self.plate,
             data      = self.data,
             Build     = self.Build,
@@ -104,15 +106,15 @@ uVehicle = class {
 }
 
 GetVehicle = function(plate)
-    if not plate or Utility.VehiclesData[plate] == nil then
+    if not plate or Utility.Vehicles[plate] == nil then
         error("GetVehicle: no valid vehicle plate provided, this uEntity works only with owned vehicles")
     end
 
-    if not Utility.VehiclesData[plate]:IsBuilded() then
-        Utility.VehiclesData[plate]:Build()
+    if not Utility.Vehicles[plate]:IsBuilded() then
+        Utility.Vehicles[plate]:Build()
     end
 
-    return Utility.VehiclesData[plate]
+    return Utility.Vehicles[plate]
 end
 
 LoadVehicles = function()
@@ -134,4 +136,15 @@ LoadVehicles = function()
     end
 
     return #vehicles
+end
+
+SaveVehicles = function()
+    Log("Save", "Saving automatically vehicles")
+
+    for k,v in pairs(Utility.Vehicles) do        
+        MySQL.Sync.execute('UPDATE vehicles SET data = :data WHERE plate = :plate', {
+            data   = Config.TableCompression == "msgpack" and msgpack.pack(v.data) or json.encode(v.data),
+            plate  = k
+        })
+    end
 end

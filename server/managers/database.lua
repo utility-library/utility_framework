@@ -49,7 +49,7 @@ GenerateQueryFromTable = function(_type, uPlayer, coords)
 
         for k,v in pairs(uPlayerReadyForDB) do
             if type(v) == "table" then
-                params[k] = json.encode(v)
+                params[k] = Config.TableCompression == "msgpack" and msgpack.pack(v) or json.encode(v)
             else
                 params[k] = v
             end
@@ -74,7 +74,7 @@ GenerateQueryFromTable = function(_type, uPlayer, coords)
 
             if type(v) == "table" then
                 if next(v) ~= nil then
-                    params[k] = json.encode(v)
+                    params[k] = Config.TableCompression == "msgpack" and msgpack.pack(v) or json.encode(v)
                 else
                     skip = true
                 end

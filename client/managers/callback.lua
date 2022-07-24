@@ -15,7 +15,7 @@ TriggerServerCallbackAsync = function(name, _function, ...)
     TriggerServerEvent(name, ...) -- Trigger the server event to get the data
 end
 
-TriggerServerCallbackSync = function(name, ...)
+TriggerServerCallback = function(name, ...)
     local p = promise.new()        
     local eventHandler = nil
     local b64nameC = enc.Utf8ToB64(name)

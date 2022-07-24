@@ -29,14 +29,14 @@ local utfw = exports["utility_framework"]
             end
         end)
 
-        exports("UseItem", function(name)
-            if exports["utility_framework"]:HaveItemQuantity(name, 1) then
-                TriggerServerEvent("Utility_Usable:"..name)
+        exports("UseItem", function(name, data)
+            if exports["utility_framework"]:HaveItemQuantity(name, 1, data) then
+                TriggerServerEvent("Utility_Usable:"..name, data)
             end
         end)
         
         exports("HaveItemQuantity", function(name, quantity, data)
-            local item = FindItem(name, data)
+            local item = FindItem(name, LocalPlayer.state.inventory, data)
 
             if item then
                 return (item[2] >= quantity)
@@ -144,7 +144,7 @@ local utfw = exports["utility_framework"]
         end)
     -- Vehicle
         exports("GetComponents", function(plate)
-            return TriggerServerCallbackSync("Utility:GetComponents", plate)
+            return TriggerServerCallback("Utility:GetComponents", plate)
         end)
 
         exports("SpawnOwnedVehicle", function(plate, coords, network)

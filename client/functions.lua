@@ -360,3 +360,10 @@ EmitEvent = function(name, ...)
     TriggerClientEvent("Utility:Emitter:"..name, source, ...)
     TriggerEvent("Utility:Emitter:"..name, source, ...)
 end
+
+local server_identifier = LoadResourceFile("utility_framework", "files/server-identifier.utility") 
+GetServerIdentifier = function()
+    return server_identifier
+end
+
+exports("GetServerIdentifier", GetServerIdentifier)

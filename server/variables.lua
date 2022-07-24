@@ -5,23 +5,17 @@ mathm    = addon("math")           -- Addon to perform some long things like rou
 ts       = addon("translate")      -- Addon that allow you to auto translate strings
 enc      = addon("encrypting")
 
--- GlobalState creation
-
---UsableItem      = BuildFakeProxyTable("UsableItem")
---SharedFunction  = BuildFakeProxyTable("SharedFunction")
-
-
 Utility = {
     DatabaseLoaded = false,
-    SocietyAlreadySaved = false,
+    AlreadySaved   = false,
     
-    PlayersData     = {},
-    VehiclesData    = {},
-    SocietyData     = {},
-    Stashes         = {},
+    Players     = {},
+    Vehicles    = {},
+    Societies   = {},
+    Stashes     = {},
 
-    JobWorker       = {},
-    Hooks           = {},
+    JobWorker   = {},
+    Hooks       = {},
 
     Bans = {},        
     
@@ -31,4 +25,6 @@ Utility = {
 
 -- For function _ auto translation in the server loader
 GlobalState.TranslationCache = {}
+
 GlobalState.SharedFunction = {}
+GlobalState.SecuredEvents = {}

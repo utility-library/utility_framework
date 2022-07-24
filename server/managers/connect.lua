@@ -12,7 +12,7 @@ AddEventHandler("Utility:Loaded", function()
     local uPlayer = GetPlayer(identifier)
 
     if uPlayer then
-        if uPlayer.__type == nil or uPlayer.__type == "uClass" then 
+        if not uPlayer:IsBuilded() then 
             uPlayer:PreBuild()
         end
     
@@ -25,7 +25,7 @@ AddEventHandler("Utility:Loaded", function()
             end
         end
     else
-        print("Player "..identifier.." not found")
+        error("Player "..identifier.." not found")
     end
 end)
 
@@ -41,7 +41,7 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
         CancelEvent()
         setKickReason("Utility Framework: Unable to find "..Config.Database.Identifier..", please relaunch FiveM")
     else
-        local uPlayer = Utility.PlayersData[identifier]
+        local uPlayer = Utility.Players[identifier]
 
         if uPlayer and uPlayer:IsBuilded() then
             CancelEvent()
@@ -105,7 +105,7 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
                 end
             end
 
-            if not Utility.PlayersData[identifier] then
+            if not Utility.Players[identifier] then
                 local uPlayer = GeneratePlayer(_source, identifier)
                 uPlayer:PreBuild()
 
@@ -115,7 +115,7 @@ AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
                     Log("Connection", "New user "..uPlayer.name.." connected and created")
                 end
             else
-                local uPlayer = Utility.PlayersData[identifier]
+                local uPlayer = Utility.Players[identifier]
                 uPlayer:PreBuild()
 
                 -- Log

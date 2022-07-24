@@ -202,15 +202,6 @@
     end)
 
 -- Item
-    RegisterCommand("testitem", function(source, args)
-        local uPlayer = GetPlayer(source)
-
-        uPlayer.RemoveItem("test", 10, {
-            dio = "cane",
-            serial = "TEST458048"
-        })
-    end)
-
     RegisterCommand("giveitem", function(source, args)
         local uPlayer = GetPlayer(source)
         
@@ -245,21 +236,7 @@
                 uPlayer = GetPlayer(tonumber(args[1]))
             end
 
-            local inventory = uPlayer.inventory
-            --[[local content = {}
-
-            for name, data in pairs(inventory) do
-                local itemCount = 0
-                for k, v in pairs(data) do
-                    itemCount = itemCount + v[1]
-                end
-
-                table.insert(content, {label = uPlayer.GetItem(name).label.." | "..itemCount, value = name})
-            end
-
-            TriggerClientEvent("Utility:OpenMenu", source, "<fa-tshirt> Inventory", content)]]
-
-            print(json.encode(inventory, {index = true}))
+            print(json.encode(uPlayer.inventory, {index = true}))
         end
     end)
     RegisterCommand("getweight", function(source, args)
@@ -358,7 +335,7 @@
         -- 4 = amount
         if args[1] == "0" then args[1] = source end
 
-        local uSociety = Utility.SocietyData[args[2]]
+        local uSociety = Utility.Societies[args[2]]
         if uSociety then
             uSociety.CreateBill(args[1], args[3], args[4])
         end

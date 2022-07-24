@@ -1,5 +1,4 @@
-local server_identifier = LoadResourceFile("utility_framework", "files/server-identifier.utility") 
-local kvp = Config.GlobalSkin and "utility_skin" or "utility_skin:"..server_identifier
+local kvp = Config.GlobalSkin and "utility_skin" or "utility_skin:"..GetServerIdentifier()
 
 Clothes = ConvertKvp(kvp)
 
@@ -231,17 +230,8 @@ end
 end)]]
 
 -- Player spawn (skin, weapon, ...)
-AddEventHandler('onClientMapStart', function()
-    print("Started")
-    exports.spawnmanager:setAutoSpawn(false)
-
-    while LocalPlayer.state.loaded == nil do Citizen.Wait(1) end
-
-    print("[DEBUG] [SKIN] Spawn, "..json.encode(uPlayer.coords))
+RegisterCommand("test", function()
     local _coords = uPlayer.coords
-
-    print("[DEBUG] [SKIN] "..json.encode({ x = _coords[1], y = _coords[2], z = _coords[3], heading = 0.0, model = `mp_m_freemode_01`, skipFade = false}))
-    
     exports.spawnmanager:spawnPlayer({
         x = _coords[1],
         y = _coords[2],
@@ -250,46 +240,65 @@ AddEventHandler('onClientMapStart', function()
         model = `mp_m_freemode_01`, -- dont know if works
         skipFade = false
     }, function() end)
+end)
+
+Citizen.CreateThread(function()
+    exports.spawnmanager:setAutoSpawn(false)
+
+    while LocalPlayer.state.loaded == nil do Citizen.Wait(1) end
+
+    local _coords = uPlayer.coords
+    print("[DEBUG] [SKIN] Spawn, "..json.encode(uPlayer.coords))
+    
+    if GetEntityModel(PlayerPedId()) == GetHashKey("mp_m_freemode_01") then
+        print("[DEBUG] [SKIN] Spawn aborted, already spawned")
+        return
+    end
+
+    exports.spawnmanager:spawnPlayer({
+        x = _coords[1],
+        y = _coords[2],
+        z = _coords[3],
+        heading = 0.0,
+        model = `mp_m_freemode_01`,
+        skipFade = false
+    }, function() 
+        LoadMpPlayer(uPlayer.identity["gender"] == "f", function()
+            local player = PlayerPedId()
+            LocalPlayer.state.ped = player
+            --SetEntityCoords(player, _coords[1], _coords[2], _coords[3])
+
+            ApplySkin(Clothes)
+            
+            if uPlayer.weapons ~= nil then
+                for weapon, ammo in pairs(uPlayer.weapons) do
+                    weapon = DecompressWeapon(weapon)
+
+                    GiveWeaponToPed(player, GetHashKey(weapon), tonumber(ammo), false, false)
+                    SetPedAmmo(player, GetHashKey(weapon), tonumber(ammo))
+                end
+    
+                SetCurrentPedWeapon(player, `weapon_unarmed`, true)
+            end
+
+            if uPlayer.external.isdead then
+                SetEntityHealth(player, 0)
+            end
+
+            if uPlayer.external.armour ~= nil then
+                SetPedArmour(player, tonumber(uPlayer.external.armour))
+            end
+
+            while not HasCollisionLoadedAroundEntity(player) do
+                Citizen.Wait(1)
+            end
+            
+            TriggerEvent("Utility:PlayerLoaded", uPlayer)
+            print("Loaded!")
+        end)
+    end)
 
     -- is more stable than the callback (idk why but i test with a server of a my friend and the callback dont works)
-    AddEventHandler("playerSpawned", function()
-        for i=1, #Config.Identity do
-            if Config.Identity[i] == "sex" then
-                LoadMpPlayer(uPlayer.identity[i] == "f", function()
-                    local player = PlayerPedId()
-                    LocalPlayer.state.ped = player
-
-                    ApplySkin(Clothes)
-                    
-                    if uPlayer.weapons ~= nil then
-                        for weapon, ammo in pairs(uPlayer.weapons) do
-                            weapon = DecompressWeapon(weapon)
-
-                            GiveWeaponToPed(player, GetHashKey(weapon), tonumber(ammo), false, false)
-                            SetPedAmmo(player, GetHashKey(weapon), tonumber(ammo))
-                        end
-            
-                        SetCurrentPedWeapon(player, `weapon_unarmed`, true)
-                    end
-
-                    if uPlayer.external.isdead then
-                        SetEntityHealth(player, 0)
-                    end
-
-                    if uPlayer.external.armour ~= nil then
-                        SetPedArmour(player, tonumber(uPlayer.external.armour))
-                    end
-
-                    while not HasCollisionLoadedAroundEntity(player) do
-                        Citizen.Wait(50)
-                    end
-                    
-                    TriggerEvent("Utility:PlayerLoaded", uPlayer)
-                    print("Loaded!")
-                end)
-            end
-        end
-    end) 
 end)
 
 

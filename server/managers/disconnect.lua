@@ -1,27 +1,3 @@
-function SaveSocieties()
-    Log("Save", "Saving automatically society")
-    
-    for k,v in pairs(Utility.SocietyData) do
-        MySQL.Sync.execute('UPDATE society SET money = :money, deposit = :deposit, weapon = :weapon WHERE name = :name', {
-            money   = json.encode(v.money),
-            deposit = json.encode(v.deposit or {}),
-            weapon  = json.encode(v.weapon or {}),
-            name    = k
-        })
-    end
-end
-function SaveVehicles()
-    Log("Save", "Saving automatically vehicles")
-    
-    for k,v in pairs(Utility.VehiclesData) do
-        MySQL.Sync.execute('UPDATE vehicles SET data = :data WHERE plate = :plate', {
-            data   = json.encode(v.data),
-            plate  = k
-        })
-    end
-end
-
-
 local function SaveArmour(uPlayer, armour)
     if Config.Actived.SaveArmour then
         if armour == 0 then
@@ -42,7 +18,7 @@ AddEventHandler("playerDropped", function(reason)
     
 
     -- Society saving
-    if #GetPlayers() < 2 then -- 1 or 0 (so if the player results as already quitted or not)
+    if GetNumPlayerIndices() < 2 then -- 1 or 0 (so if the player results as already quitted or not)
         TriggerEvent("onServerEmpty")
         SaveSocieties()
         SaveVehicles()
@@ -51,8 +27,8 @@ AddEventHandler("playerDropped", function(reason)
 
 
     if reason:find("Server shutting down") then
-        if not Utility.SocietyAlreadySaved then
-            Utility.SocietyAlreadySaved = true
+        if not Utility.AlreadySaved then
+            Utility.AlreadySaved = true
             TriggerEvent("onServerStop")
             SaveSocieties()
             SaveVehicles()

@@ -14,24 +14,26 @@ local uPlayer = class {
     identifier = "",
     ToSave = false,
 
-
-
-    _Init = function(self)
+    SerializeIdentifier = function(self)
         if Config.Database.Identifier == "steam" then
-            if not self.identifier:find(":") then
-                self.identifier = "steam:110000"..self.identifier
+            if not IsIdentifierSerialized(self.identifier) then 
+                self.identifier = "steam:110000"..self.identifier 
             end
 
             self.uidentifier = self.identifier:gsub("steam:110000", "")
         else
-            if not self.identifier:find(":") then
+            if not IsIdentifierSerialized(self.identifier) then 
                 self.identifier = "license:"..self.identifier
             end
 
             self.uidentifier = self.identifier:gsub("license:", "")
         end
+    end,
+
+    _Init = function(self)
+        self:SerializeIdentifier()
         
-        ConvertTables(self)
+        DecodeJsonTables(self)
         
         if not self.coords then
             self.coords = {Config.Start.Position.x, Config.Start.Position.y, Config.Start.Position.z}
@@ -49,7 +51,7 @@ local uPlayer = class {
         end
 
         --self:PreBuild(self)
-        Utility.PlayersData[self.identifier] = self
+        Utility.Players[self.identifier] = self
     end,
 
     PreBuild = function(self)
@@ -60,7 +62,7 @@ local uPlayer = class {
         
         Log("Building", "Server uPlayer builded for "..self.identifier.." in "..((os.clock() - start)*1000).." ms")
 
-        Utility.PlayersData[self.identifier] = self
+        Utility.Players[self.identifier] = self
     end,
 
     Build = function(self, id)
@@ -74,14 +76,14 @@ local uPlayer = class {
         ---
 
         -- Build owned vehicles
-        for k,v in pairs(Utility.VehiclesData) do
+        for k,v in pairs(Utility.Vehicles) do
             if v.owner == self.identifier then
                 table.insert(self.vehicles, v)
             end
         end
 
         -- Build owned society vehicles
-        for k,v in pairs(Utility.VehiclesData) do
+        for k,v in pairs(Utility.Vehicles) do
             for i=1, #self.jobs do
                 if v.owner == "society:"..self.jobs[i].name then
                     table.insert(self.societyvehicles, v)
@@ -94,7 +96,7 @@ local uPlayer = class {
 
         Log("Building", "Client uPlayer builded for "..self.identifier.." in "..((os.clock() - start)*1000).." ms")
 
-        Utility.PlayersData[self.identifier] = self
+        Utility.Players[self.identifier] = self
     end,
 
     Client = function(self)
@@ -108,7 +110,7 @@ local uPlayer = class {
             RemoveFromJob(self.jobs[i].name, self.source)
         end
 
-        Utility.PlayersData[self.identifier] = {
+        Utility.Players[self.identifier] = {
             name            = self.name,
             identifier      = self.identifier,
             uidentifier     = self.uidentifier,
@@ -141,6 +143,10 @@ local uPlayer = class {
         return self.__type == "uPlayer"
     end,
 }
+
+IsIdentifierSerialized = function(identifier)
+    return identifier:find(":")
+end
 
 function uPlayerCreateMethods(self)
     self.UpdateClient = function(property)
@@ -510,17 +516,19 @@ function uPlayerCreateMethods(self)
         --[[
             Set the player identity
 
-            identity table = a key/value table with the identity information (see example)
+            identity table/string = A key/value table with the identity information or a string (see example)
+            value any = The value of the identity
         ]]
-        self.SetIdentity = function(identity)
-            check({identity = "table"})
-
-            for k,v in pairs(identity) do
-                for i=1, #Config.Identity do
-                    if k == Config.Identity[i] then
-                        self.identity[i] = v
-                    end
+        self.SetIdentity = function(identity, value)
+            if type(identity) == "table" then
+                for k,v in pairs(identity) do
+                    self.identity[k] = v
                 end
+            else
+                check({identity = "string"})
+                self.identity[identity] = value
+
+                identity = {[identity] = value}
             end
 
             self.UpdateClient("identity")
@@ -534,13 +542,10 @@ function uPlayerCreateMethods(self)
 
             return [table] = The identity data
         ]]
-        self.GetIdentity = function(data)
-            if data then
-                for i=1, #Config.Identity do
-                    if Config.Identity[i] == data then
-                        return self.identity[i]
-                    end
-                end
+        self.GetIdentity = function(index)
+            if index then
+                check({index = "string"})
+                return self.identity[index]
             else
                 return self.identity
             end
@@ -700,7 +705,7 @@ function uPlayerCreateMethods(self)
             Revive the player
         ]]
         self.Revive = function()
-            EmitEvent("OnRevive")
+            EmitEvent("OnRevive", self.source)
         end
 
         --[[
@@ -847,7 +852,7 @@ function uPlayerCreateMethods(self)
             if bill_info then
                 if self.HaveMoneyQuantity("bank", bill_info[3]) then
                     self.RemoveMoney("bank", bill_info[3])
-                    Utility.SocietyData[bill_info[1]].AddMoney("bank", bill_info[3])
+                    Utility.Societies[bill_info[1]].AddMoney("bank", bill_info[3])
 
                     table.remove(self.bills, id)
                     
@@ -961,18 +966,18 @@ function uPlayerCreateMethods(self)
                     end
             
                     -- Set new owner 
-                    Utility.VehiclesData[plate].owner = uTarget.identifier
+                    Utility.Vehicles[plate].owner = uTarget.identifier
                     
                     if VehicleData then
                         if IsSocietyVehicle then
                             -- Add the vehicle to the uTarget
-                            uTarget.societyvehicles[plate] = Utility.VehiclesData[plate]
+                            uTarget.societyvehicles[plate] = Utility.Vehicles[plate]
     
                             uTarget.UpdateClient("societyvehicles")
                             self.UpdateClient("societyvehicles")
                         else
                             -- Add the vehicle to the uTarget
-                            uTarget.vehicles[plate] = Utility.VehiclesData[plate]
+                            uTarget.vehicles[plate] = Utility.Vehicles[plate]
 
                             uTarget.UpdateClient("vehicles")
                             self.UpdateClient("vehicles")
@@ -995,7 +1000,7 @@ function uPlayerCreateMethods(self)
         self.IsPlateOwned = function(plate)
             check({plate = "string"})
 
-            return Utility.VehiclesData[plate].owner == self.owner
+            return Utility.Vehicles[plate].owner == self.owner
         end
     -- Other info integration
 
@@ -1107,6 +1112,8 @@ function uPlayerCreateMethods(self)
             table.insert(Utility.Bans, {data = identifier, token = token})
             TriggerClientEvent("Utility:Ban", self.source)
 
+            Citizen.Wait(100)
+
             DropPlayer(self.source, Config.Labels["framework"]["Banned"])
         end
     -- Other function
@@ -1216,7 +1223,7 @@ end
 local steamCache = {}
 GetPlayer = function(identifier)
     if type(identifier) == "string" then
-        return Utility.PlayersData[identifier]
+        return Utility.Players[identifier]
     else
         if identifier == 0 then
             return nil
@@ -1226,14 +1233,14 @@ GetPlayer = function(identifier)
             steamCache[identifier] = GetuPlayerIdentifier(identifier)
         end
 
-        return Utility.PlayersData[steamCache[identifier]]
+        return Utility.Players[steamCache[identifier]]
     end
 end
 
 GetUtilityPlayers = function()
     local players = {}
     
-    for k,v in pairs(Utility.PlayersData) do
+    for k,v in pairs(Utility.Players) do
         if v:IsBuilded() then -- Only return builded players (online)
             local v2 = {}
 
@@ -1259,7 +1266,7 @@ GetClientPlayer = function(id)
         state = player,
         __newindex = function(self, index, new)
             player[index] = new
-            Utility.PlayersData[player.identifier][index] = new
+            Utility.Players[player.identifier][index] = new
 
             --print("Setting \""..tostring(index).."\" to \""..tostring(new).."\" for "..id)
         end,
@@ -1268,7 +1275,7 @@ GetClientPlayer = function(id)
             oi[k] = v
 
             player.external = oi
-            Utility.PlayersData[player.identifier].external[k] = v
+            Utility.Players[player.identifier].external[k] = v
             --print("Setting external \""..tostring(k).."\" to \""..tostring(v).."\" for "..id)
         end
     }
@@ -1326,10 +1333,8 @@ GeneratePlayer = function(id, identifier)
         coords     = {Config.Start.Position.x, Config.Start.Position.y, Config.Start.Position.z},
         name       = GetPlayerName(id),
         inventory  = Config.Start.Items or {},
-        accounts   = {},
+        accounts   = Config.Start.Accounts or {},
         jobs       = {},
-        inventory  = {},
-        identity   = {},
         isNew      = true,
     }
 
@@ -1343,13 +1348,6 @@ GeneratePlayer = function(id, identifier)
                 [2] = Config.Start.Job[i][2],
                 [3] = true,
             }
-        end
-    end
-
-    -- Identity
-    if Config.Actived.Identity then
-        for i=1, #Config.Identity do
-            options.identity[i] = ""
         end
     end
     

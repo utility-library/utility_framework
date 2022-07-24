@@ -2,16 +2,17 @@ oxmysql = exports["oxmysql"]
 Utility = exports["utility_framework"]
 uConfig = Utility:GetConfig()
 ResourceName = GetCurrentResourceName()
+ServerIdentifier = nil
+_TYPE = type
 
-
-local _TYPE = type
+local msgpack_unpack = msgpack.unpack
 local SavedAddEventHandler = AddEventHandler
 local SavedRegisterServerEvent = RegisterServerEvent
 
 local UtilityData = {
     LocalUnsecureEvents = {},
     LocalServerOnly   = {},
-    LocalServerEvents = {},
+    LocalSecuredEvents = {},
     TranslationCache = {},
     Hooks = {
         uPlayer = {},
@@ -37,6 +38,7 @@ local UtilityData = {
 -- Request the token from the server of the Utility
     Citizen.CreateThread(function()
         UtilityData.PvKey, UtilityData.Token = exports["utility_framework"]:GetServerToken()
+        ServerIdentifier = exports["utility_framework"]:GetServerIdentifier()
     end)
 
 --// uEntities
@@ -106,7 +108,7 @@ local UtilityData = {
 
     addon = function(name)
         local addon = io.open(GetResourcePath("utility_framework").."/server/addons/"..name..".lua", "r")
-        
+
         if addon then
             local data = addon:read("*a")
             local _load, error = load(data)()
@@ -164,16 +166,13 @@ local UtilityData = {
 
             -- Create a non secured event for the item (no needed secured why it check the quantity)
             SavedRegisterServerEvent("Utility_Usable:"..name)
-            SavedAddEventHandler("Utility_Usable:"..name, function()
+            SavedAddEventHandler("Utility_Usable:"..name, function(data)
                 uPlayer = GetPlayer(source)
                 
-                if uPlayer.HaveItemQuantity(name, 1) then
-                    cb(true)
-                    local item = uPlayer.GetItem(name)
+                if uPlayer.HaveItemQuantity(name, 1, data) then
+                    cb(data)
 
-                    EmitEvent("ItemUsed", uPlayer.source, name, item.data) -- Emit the event
-                else
-                    cb(false)
+                    EmitEvent("ItemUsed", uPlayer.source, name, data) -- Emit the event
                 end
             end)
         end
@@ -299,20 +298,23 @@ local UtilityData = {
         return true
     end
 
-    RegisterServerEvent = function(name, cb)
-        UtilityData.LocalServerEvents[name] = true
-        SavedRegisterServerEvent(name)
+    RegisterSecureEvent = function(name, cb)
+        UtilityData.LocalSecuredEvents[name] = true
 
-        if cb then
-            AddEventHandler(name, cb)
-        end
+        -- insert in SecuredEvents table the event name (if a cheater remove one of them in the client side it simply not provide a token, so it will banned)
+        local se = GlobalState.SecuredEvents
+        table.insert(se, name)
+        GlobalState.SecuredEvents = se
+
+        RegisterServerEvent(name, cb)
     end
 
-    RegisterUnsecureEvent = function(name, cb)
+    RegisterServerEvent = function(name, cb)
+        --print("Registered unsecure event "..name)
         SavedRegisterServerEvent(name)
 
         if cb then
-            AddEventHandler(name, cb)
+            SavedAddEventHandler(name, cb)
         end
     end
 
@@ -344,7 +346,7 @@ local UtilityData = {
                     cb(...)
                 end
             end)
-        elseif UtilityData.LocalServerEvents[name] then
+        elseif UtilityData.LocalSecuredEvents[name] then
             Citizen.CreateThread(function()
                 local a2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
                 local i=function(a)return(a:gsub('.',function(b)local c,a2='',b:byte()for d=8,1,-1 do c=c..(a2%2^d-a2%2^(d-1)>0 and'1'or'0')end;return c end)..'0000'):gsub('%d%d%d?%d?%d?%d?',function(b)if#b<6 then return''end;local e=0;for d=1,6 do e=e+(b:sub(d,d)=='1'and 2^(6-d)or 0)end;return a2:sub(e+1,e+1)end)..({'','==','='})[#a%3+1]end
@@ -363,6 +365,8 @@ local UtilityData = {
                     if _source and _source > 0 then
                         if not BlacklistedEncrypted[encrypted] then 
                             local p = promise:new()
+                            local encrypted = msgpack_unpack(encrypted)
+
                             exports["utility_framework"]:Decrypt(UtilityData.PvKey, encrypted, function(decrypted) p:resolve(decrypted) end)
                             local decrypted = Citizen.Await(p)
 
@@ -374,7 +378,7 @@ local UtilityData = {
 
                             collectgarbage("collect")
 
-                            if decrypted == tostring(UtilityData.Token)then 
+                            if decrypted == tostring(UtilityData.Token) then 
                                 BlacklistedEncrypted[encrypted]=true 
 
                                 uPlayer = GetPreuPlayer(source)
@@ -387,7 +391,7 @@ local UtilityData = {
                             --print("Blacklisted token (attempt to trigger with an already used token, probably dump of a trigger) [TBP Auto Ban]")
                             GetPlayer(_source).Ban("Blacklisted token (attempt to trigger with an already used token, probably dump of a trigger) [TBP Auto Ban]")
                         end
-                    else
+                    elseif _source == 0 then
                         cb(...)
                     end
                 end)
