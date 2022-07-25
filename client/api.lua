@@ -786,8 +786,8 @@ end)
 
     IsAreaClear = function(type, radius)
         if type == "objects" then
-        elseif type == "vehicles" then
             return GetObjectsInArea(nil, radius).handle == nil
+        elseif type == "vehicles" then
             return GetVehiclesInArea(nil, radius).handle == nil
         elseif type == "peds" then
             return GetPedsInArea(nil, radius).handle == nil
