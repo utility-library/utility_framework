@@ -742,8 +742,8 @@ end)
     end
 
     GetClosestPlayer = function(coords)
-        local players = GetPlayersInArea(coords)
         coords = coords or GetEntityCoords(uPlayer.ped)
+        local players = GetPlayersInArea(coords)
 
         return GetClosestEntity(players, coords, false)
     end
