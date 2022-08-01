@@ -337,7 +337,7 @@ function uPlayerCreateMethods(self)
         end
 
         self.FindItems = function(name, filter)
-            check({name = "string", filter = "table"})
+            check({name = "string"})
 
             return FindItems(name, self.inventory, filter)
         end
@@ -443,7 +443,7 @@ function uPlayerCreateMethods(self)
         ]]
         self.SetJob = function(name, grade, type)
             check({name = "string", grade = "number"})
-            tpye = type or 1 -- Default type is 1
+            type = type or 1 -- Default type is 1
             
             local OldJob = self.jobs[type]
 
@@ -462,9 +462,9 @@ function uPlayerCreateMethods(self)
             
             AddToJob(self.jobs[type], type, self.source)
 
-            Log("Jobs", self.source.." have changed job "..(type).." from "..(OldJob[type].name or "unknown").." to "..name.." "..grade)
+            Log("Jobs", self.source.." have changed job "..(type).." from "..(OldJob.name or "unknown").." to "..name.." "..grade)
             self.UpdateClient("jobs")
-            EmitEvent("JobChange", self.source, OldJob[type], self.jobs[type], type)
+            EmitEvent("JobChange", self.source, OldJob, self.jobs[type], type)
         end
 
         --[[
@@ -507,6 +507,7 @@ function uPlayerCreateMethods(self)
             if self.jobs[type] then
                 self.jobs[type].onduty = onduty
 
+                Log("Jobs", self.source.." have changed is duty to "..tostring(onduty).." for the type "..type)
                 self.UpdateClient("jobs")
                 EmitEvent("OnDuty", self.source, onduty)
             end
@@ -667,7 +668,18 @@ function uPlayerCreateMethods(self)
             return [table] = The weapons of the player
         ]]
         self.GetWeapons = function()
-            return self.weapons or {}
+            local serializedWeapons = {}
+
+            for name, ammo in pairs(self.weapons) do
+                local name = DecompressWeapon(name)
+                
+                serializedWeapons[name] = {
+                    ammo = ammo,
+                    label = Config.Labels.weapons[name]
+                }
+            end
+
+            return serializedWeapons
         end
 
         --[[
@@ -1035,10 +1047,14 @@ function uPlayerCreateMethods(self)
             else
                 check({id = "string"})
 
-                local decoded = json.decode(self.external[id])
-
-                if decoded ~= nil then
-                    return decoded
+                if self.external[id]:find("{") or self.external[id]:find("[") then
+                    local decoded = json.decode(self.external[id])
+    
+                    if decoded ~= nil then
+                        return decoded
+                    else
+                        return self.external[id] or nil
+                    end
                 else
                     return self.external[id] or nil
                 end
@@ -1224,7 +1240,7 @@ local steamCache = {}
 GetPlayer = function(identifier)
     if type(identifier) == "string" then
         return Utility.Players[identifier]
-    else
+    elseif type(identifier) == "number" then
         if identifier == 0 then
             return nil
         end
@@ -1234,6 +1250,8 @@ GetPlayer = function(identifier)
         end
 
         return Utility.Players[steamCache[identifier]]
+    else
+        return nil, "malformed data, only strings or numbers are valid"
     end
 end
 

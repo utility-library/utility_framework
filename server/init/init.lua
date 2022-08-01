@@ -150,11 +150,10 @@ StartupCheck = function()
     end
 end
 
-StartupMessage = function(player, society, vehicle, stashes)
+StartupMessage = function(player, vehicle, stashes)
     local executionTime = math.floor(mathm.round(analizer.finish(), 1))
     
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(player, "users"))
-    print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(society, "societies"))
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(vehicle, "vehicles"))
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["LoadedMsg"]):format(stashes, "stashes"))
 
@@ -167,7 +166,7 @@ StartupMessage = function(player, society, vehicle, stashes)
 
     print(Config.PrintType["startup"]..ts.translate(Config.DefaultLanguage, Config.Labels["framework"]["StartedIn"]):format(tostring(executionTime)))
 
-    Log("Startup", "Loaded "..player.." player and "..society.." society in "..executionTime.."ms")
+    Log("Startup", "Loaded "..player.." player, "..vehicle.." vehicles and "..stashes.." stashes in "..executionTime.."ms")
     
     Utility.DatabaseLoaded = true
 

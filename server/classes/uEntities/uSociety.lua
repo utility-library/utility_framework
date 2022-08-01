@@ -71,47 +71,26 @@ end
 
 uSociety = class {
     _Init = function(self)
-        self.__type = "PreuSociety"
-
-        self.money       = json.decode(self.money) or {bank = 0, black = 0}
-        self.weapon      = json.decode(self.weapon)
+        local start = os.clock()
+        self.__type = "uSociety"
 
         self.vehicles    = {}
 
-        Utility.Societies[self.name] = self
-    end,
-
-    Build = function(self)
-        local start = os.clock()
-
-        self.__type = "uSociety"
-        self.deposit     = GetStash("society:"..self.name)
-
-        if self.deposit == nil then -- Dont have an old deposit
+        if DoesStashExist("society:"..self.name) then
+            self.deposit = GetStash("society:"..self.name)
+        else
             self.deposit = CreateStash("society:"..self.name, nil, true)
         end
 
         self = BuildVehicles(self)
         self = BuildFunctions(self)
+
+        self.money       = self.datas.money or {}
+        self.weapons     = self.datas.weapons or {}
         
-        Log("Building", "uSociety builded for "..self.name.." in "..((os.clock() - start)*1000).." ms")
+        Log("Building", "uSociety created for "..self.name.." in "..((os.clock() - start)*1000).." ms")
 
         Utility.Societies[self.name] = self
-    end,
-
-    IsBuilded = function(self)
-        return (self.__type == "uSociety")
-    end,
-
-    Demolish = function(self)
-        Utility.Societies[self.name] = {
-            name      = self.name,
-            money     = self.money,
-            weapon    = self.weapon,
-            Build     = self.Build,
-            Demolish  = self.Demolish,
-            IsBuilded = self.IsBuilded,
-        }
     end
 }
 
@@ -120,36 +99,34 @@ GetSociety = function(name)
         error("GetSociety: no valid society name provided")
     end
 
-    print(Utility.Societies[name]:IsBuilded())
-    if not Utility.Societies[name]:IsBuilded() then
-        Utility.Societies[name]:Build()
-    end
-
     return Utility.Societies[name]
 end
 
+RegisterServerCallback("Utility:Society:GetSocietyVehicles", function(society)
+    local society = GetSociety(society)
+    return society.vehicles
+end)
 
-LoadSocieties = function()
-    local society = MySQL.Sync.fetchAll('SELECT name, money FROM society', {})
-    if society == nil then error("Unable to connect with the table `society`, try to check the MySQL status!") return end
+RegisterServerCallback("Utility:Society:GetSociety", function(society)
+    local society = GetSociety(society)
+    return {
+        name      = society.name,
+        money     = society.money,
+        weapon    = society.weapon,
+        vehicles  = society.vehicles,
+    }
+end)
 
-    for i=1, #society do
-        uSociety({
-            name      = society[i].name,
-            money     = society[i].money,
-        })
-    end
-
-    return #society
+CreateSociety = function(name)
+    return uSociety({name = name})
 end
 
-SaveSocieties = function()
-    Log("Save", "Saving automatically society")
-    
-    for k,v in pairs(Utility.Societies) do
-        MySQL.Sync.execute('UPDATE society SET money = :money WHERE name = :name', {
-            money   = json.encode(v.money),
-            name    = k
-        })
+Citizen.CreateThread(function()
+    while not Utility.DatabaseLoaded do
+        Citizen.Wait(100)
     end
-end
+
+    for i=1, #Config.Societies do
+        local society = CreateSociety(Config.Societies[i])
+    end
+end)

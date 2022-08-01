@@ -6,13 +6,11 @@
                     DropPlayer(v, "Server shutted down from the console")
                 end
                 Citizen.Wait(100)
-                SaveSocieties()
                 SaveVehicles()
                 SaveStashes()
                 Citizen.Wait(100)
                 os.exit()
             elseif args[1] == "save" then
-                SaveSocieties()
                 SaveVehicles()
                 SaveStashes()
             elseif args[1] == "create" then
@@ -174,9 +172,13 @@
         if source == 0 or uPlayer.group ~= "user" then
             if args[1] == "0" or args[1] == nil then args[1] = source end
 
-            local uPlayer = GetPlayer(tonumber(args[1]))
+            local uTarget = GetPlayer(tonumber(args[1]))
 
-            uPlayer.Revive()
+            if uTarget then
+                uTarget.Revive()
+            else
+                uPlayer.ShowNotification("There are no players with that id online")
+            end
         end
     end)
 

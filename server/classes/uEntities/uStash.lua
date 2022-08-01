@@ -3,7 +3,7 @@ local BuildWeight = function(self)
         self.maxWeight = Config.Inventory.MaxWeight
         self.weight = 0
     
-        for k,v in pairs(self.items) do
+        for k,v in pairs(self.datas.items) do
             self.weight = self.weight + CalculateItemWeight(k, v[2])
         end
     end
@@ -22,7 +22,7 @@ local function BuildFunctions(self)
         AddItemInternal(name, quantity, data, self)
 
         Log("Item", "Added "..quantity.." "..name.." to stash "..self.identifier)
-        self.UpdateClient("items")
+        self.UpdateClient("datas")
         EmitEvent("StashItemAdded", -1, self.identifier, name, quantity, data)
     end
 
@@ -42,7 +42,7 @@ local function BuildFunctions(self)
         RemoveItemInternal(name, quantity, data, self)
 
         Log("Item", "Removed "..quantity.." "..name.." from stash "..self.identifier)
-        self.UpdateClient("items")
+        self.UpdateClient("datas")
         EmitEvent("StashItemRemoved", -1, self.identifier, name, quantity, data)
     end
 
@@ -60,10 +60,13 @@ local function BuildFunctions(self)
         if uPlayer.HaveItemQuantity(name, quantity, data) then
             uPlayer.RemoveItem(name, quantity, data)
             self.AddItem(name, quantity, data)
-        end
 
-        Log("Item", "Inserted "..quantity.." "..name.." from "..uPlayer.identifier.." to "..self.identifier)
-        EmitEvent("StashItemInserted", uPlayer.source, self.identifier, name, quantity, data)
+            Log("Item", "Inserted "..quantity.." "..name.." from "..uPlayer.identifier.." to "..self.identifier)
+            EmitEvent("StashItemInserted", uPlayer.source, self.identifier, name, quantity, data)
+            return true
+        else
+            return false
+        end
     end
 
     self.TakeItem = function(uPlayer, name, quantity, data)
@@ -72,24 +75,27 @@ local function BuildFunctions(self)
         if self.HaveItemQuantity(name, quantity, data) then
             self.RemoveItem(name, quantity, data)
             uPlayer.AddItem(name, quantity, data)
-        end
 
-        Log("Item", "Taken "..quantity.." "..name.." from "..self.identifier.." to "..uPlayer.identifier)
-        EmitEvent("StashItemTaken", uPlayer.source, name, quantity, data)
+            Log("Item", "Taken "..quantity.." "..name.." from "..self.identifier.." to "..uPlayer.identifier)
+            EmitEvent("StashItemTaken", uPlayer.source, name, quantity, data)
+            return true
+        else
+            return false
+        end
     end
 
     self.GetItem = function(name, data)
-        return GetItemInternal(name, data, self.items)
+        return GetItemInternal(name, data, self)
     end
 
     self.FindItems = function(name, filter)
-        check({name = "string", filter = "table"})
+        check({name = "string"})
 
-        return FindItems(name, self.items, filter)
+        return FindItems(name, self, filter)
     end
 
     self.HaveItemQuantity = function(name, quantity, data)
-        return HaveItemQuantityInternal(name, quantity, data, self.items)
+        return HaveItemQuantityInternal(name, quantity, data, self)
     end
 
     self.CanCarryItem = function(name, quantity)
@@ -111,12 +117,12 @@ local function BuildFunctions(self)
 
     -- Create the data tables only if its really needed, to save some memory
     self.CheckWeaponsData = function()
-        if not self.items.weapons then self.items.weapons = {} end
-        self.weapons = self.items.weapons
+        if not self.datas.weapons then self.datas.weapons = {} end
+        self.weapons = self.datas.weapons
     end
     self.CheckAccountsData = function(type)
-        if not self.items.accounts then self.items.accounts = {} end
-        if not self.accounts then self.accounts = self.items.accounts end
+        if not self.datas.accounts then self.datas.accounts = {} end
+        if not self.accounts then self.accounts = self.datas.accounts end
 
         if self.accounts[type] == nil then self.accounts[type] = 0 end
     end
@@ -181,7 +187,7 @@ local function BuildFunctions(self)
         ]]
         self.AddMoney = function(type, amount)
             self.CheckAccountsData(type)
-            self.money[type] = self.money[type] + tonumber(amount)
+            self.accounts[type] = self.accounts[type] + tonumber(amount)
 
             EmitEvent("StashMoneyAdded", self.identifier, type, amount)
         end
@@ -194,14 +200,14 @@ local function BuildFunctions(self)
         ]]
         self.RemoveMoney = function(type, amount)
             self.CheckAccountsData(type)
-            self.money[type] = self.money[type] - tonumber(amount)
+            self.accounts[type] = self.accounts[type] - tonumber(amount)
 
             EmitEvent("StashMoneyRemoved", self.identifier, type, amount)
         end
 
         self.SetMoney = function(type, amount)
             self.CheckAccountsData(type)
-            self.money[type] = tonumber(amount)
+            self.accounts[type] = tonumber(amount)
 
             EmitEvent("StashMoneySetted", self.identifier, type, amount)
         end
@@ -215,7 +221,7 @@ local function BuildFunctions(self)
         ]]
         self.GetMoney = function(type)
             self.CheckAccountsData(type)
-            return {quantity = self.money[type], label = GetLabel("accounts", nil, type) or type}
+            return {quantity = self.accounts[type], label = GetLabel("accounts", nil, type) or type}
         end
     
         --[[
@@ -228,18 +234,20 @@ local function BuildFunctions(self)
         ]]
         self.HaveMoneyQuantity = function(type, quantity)
             self.CheckAccountsData(type)
-            return self.money[type] >= tonumber(quantity)
+            return self.accounts[type] >= tonumber(quantity)
         end
 
     return self
 end
 
-Stash = class {
+uStash = class {
     identifier = "none",
-    items = {},
+    datas = {},
     
     -- Constructor
     _Init = function(self)
+        if self.datas.items == nil then self.datas.items = {} end
+
         if Config.Inventory.Type == "weight" then
             self.weight = 0
             
@@ -270,7 +278,7 @@ Stash = class {
     Demolish = function(self)
         Utility.Stashes[self.identifier] = {
             identifier = self.identifier,
-            items = self.items,
+            datas = self.datas,
             weight = self.weight,
             maxWeight = self.maxWeight,
             save = self.save
@@ -280,14 +288,15 @@ Stash = class {
 
 CreateStash = function(identifier, weight, save)
     if save then
-        MySQL.Async.execute("INSERT INTO stashes (identifier, items, weight) VALUES (@identifier, @items, @weight)", {
+        MySQL.Async.execute("INSERT INTO stashes (identifier, datas, weight) VALUES (@identifier, @datas, @weight)", {
             identifier = identifier,
-            items = "[]",
+            datas = "[]",
             weight = weight
         })
     end
 
-    local stash = Stash({
+    Log("Building", "Creating stash "..identifier.." with weight "..(weight or 0).." and that "..(save and "need" or "dont need").." to be saved")
+    local stash = uStash({
         identifier = identifier,
         maxWeight = weight,
         save = save
@@ -298,7 +307,7 @@ CreateStash = function(identifier, weight, save)
 end
 
 GetStash = function(id)
-    if not Utility.Stashes[id]:IsBuilded() then
+    if Utility.Stashes[id] and not Utility.Stashes[id]:IsBuilded() then
         Utility.Stashes[id]:Build()
     end
 
@@ -321,13 +330,13 @@ exports("DeleteStash", DeleteStash)
 exports("DoesStashExist", DoesStashExist)
 
 LoadStashes = function()
-    local stashes = MySQL.Sync.fetchAll('SELECT identifier, items, weight FROM stashes', {})
+    local stashes = MySQL.Sync.fetchAll('SELECT identifier, datas, weight FROM stashes', {})
     if stashes == nil then error("Unable to connect with the table `stashes`, try to check the MySQL status!") return end
 
     for i=1, #stashes do
-        Stash({
+        uStash({
             identifier = stashes[i].identifier,
-            items = json.decode(stashes[i].items),
+            datas = json.decode(stashes[i].datas),
             maxWeight = stashes[i].weight,
             save = true
         })
@@ -341,8 +350,8 @@ SaveStashes = function()
     
     for k,v in pairs(Utility.Stashes) do
         if v.save then
-            MySQL.Sync.execute('UPDATE stashes SET items = :items WHERE identifier = :identifier', {
-                items      = json.encode(v.items),
+            MySQL.Sync.execute('UPDATE stashes SET datas = :datas WHERE identifier = :identifier', {
+                datas      = json.encode(v.datas),
                 identifier = v.identifier
             })
         end

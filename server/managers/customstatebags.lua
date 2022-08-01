@@ -46,6 +46,7 @@ NewCustomStateBag = function(identifier, r)
 end
 
 RegisterServerCallback("Utility:GetStateBagValue", function(identifier)
+    --print(identifier, json.encode(StateBags, {indent = true}))
     if identifier and StateBags[identifier] then
         return StateBags[identifier]
     end

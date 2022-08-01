@@ -20,7 +20,6 @@ AddEventHandler("playerDropped", function(reason)
     -- Society saving
     if GetNumPlayerIndices() < 2 then -- 1 or 0 (so if the player results as already quitted or not)
         TriggerEvent("onServerEmpty")
-        SaveSocieties()
         SaveVehicles()
         SaveStashes()
     end
@@ -30,7 +29,6 @@ AddEventHandler("playerDropped", function(reason)
         if not Utility.AlreadySaved then
             Utility.AlreadySaved = true
             TriggerEvent("onServerStop")
-            SaveSocieties()
             SaveVehicles()
             SaveStashes()
         end
@@ -53,7 +51,7 @@ AddEventHandler("playerDropped", function(reason)
             print("[^2SAVED^0] "..(uPlayer.name or "Unkown").." ["..(uPlayer.source or "unkown").."]")
         end
 
-        Log("Save", (uPlayer.name or "Unkown").." ["..(uPlayer.source or "unkown").."] ["..(uPlayer.identifier or "error").."] Disconnected, saved in "..analizer.finish().."ms")
+        Log("Save", (uPlayer.name or "Unkown").." ["..(uPlayer.source or "unkown").."] ["..(uPlayer.identifier or "error").."] Disconnected, saved in "..mathm.round(analizer.finish(), 2).."ms")
 
         Citizen.Wait(500)
         uPlayer:Demolish()

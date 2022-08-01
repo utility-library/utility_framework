@@ -9,12 +9,11 @@ Citizen.CreateThreadNow(function()
     -- Load uEntities
     local vehicles = LoadVehicles()
     local players  = LoadPlayers()
-    local societies = LoadSocieties()
     local stashes = LoadStashes()
     
     -- Loaded Message
     LoadBans()
-    StartupMessage(players, societies, vehicles, stashes)
+    StartupMessage(players, vehicles, stashes)
 
     if GetResourceState("basic-gamemode") == "started" then
         StopResource("basic-gamemode")

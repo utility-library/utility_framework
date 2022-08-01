@@ -144,10 +144,10 @@ local UtilityData = {
             _cb(table.unpack(callbackData)) -- Unpack the data and call the callback
         end
 
-        RegisterServerCallback = function(name, cb)
+        RegisterServerCallback = function(name, cb, secure)
             local b64nameC = enc.Utf8ToB64(name)
             
-            RegisterServerEvent(name)
+            if secure then RegisterSecureEvent(name) else RegisterServerEvent(name) end
             AddEventHandler(name, function(...)
                 local source = source
                 uPlayer = GetPreuPlayer(source)
@@ -182,6 +182,13 @@ local UtilityData = {
         local defaultLanguage = Utility:GetConfig("DefaultLanguage") -- Get the language from the config (to autotranslate)
 
         _ = function(txt)
+            for k,v in pairs(uConfig.Labels) do
+                if v[txt] then
+                    return v[txt]
+                end
+            end
+
+
             -- If the UtilityLanguage isnt setted by the script use the language from the config
             if UtilityData.UtilityLanguage == nil then UtilityData.UtilityLanguage = defaultLanguage end
 
@@ -314,7 +321,7 @@ local UtilityData = {
         SavedRegisterServerEvent(name)
 
         if cb then
-            SavedAddEventHandler(name, cb)
+            AddEventHandler(name, cb)
         end
     end
 
@@ -391,7 +398,7 @@ local UtilityData = {
                             --print("Blacklisted token (attempt to trigger with an already used token, probably dump of a trigger) [TBP Auto Ban]")
                             GetPlayer(_source).Ban("Blacklisted token (attempt to trigger with an already used token, probably dump of a trigger) [TBP Auto Ban]")
                         end
-                    elseif _source == 0 then
+                    elseif _source == 0 then -- called from server
                         cb(...)
                     end
                 end)
@@ -405,7 +412,10 @@ local UtilityData = {
 
             return eventHandler
         else
-            SavedAddEventHandler(name, cb)
+            SavedAddEventHandler(name, function(...)
+                uPlayer = GetPreuPlayer(source)
+                cb(...) 
+            end)
         end
     end
 

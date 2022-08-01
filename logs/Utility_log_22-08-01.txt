@@ -1,0 +1,3 @@
+[    Time] [CPUsec] [  Position] | [Message]
+--------------------------------------------
+This is a placeholder

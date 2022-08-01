@@ -122,10 +122,12 @@ LoadVehicles = function()
     if vehicles == nil then error("Unable to connect with the table `vehicles`, try to check the MySQL status!") return end
 
     for i=1, #vehicles do
-        if Config.Database.Identifier == "steam" then
-            vehicles[i].owner = "steam:110000"..vehicles[i].owner
-        else
-            vehicles[i].owner = "license:"..vehicles[i].owner
+        if not vehicles[i].owner:find(":") then
+            if Config.Database.Identifier == "steam" then
+                vehicles[i].owner = "steam:110000"..vehicles[i].owner
+            else
+                vehicles[i].owner = "license:"..vehicles[i].owner
+            end
         end
 
         uVehicle({

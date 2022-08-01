@@ -553,7 +553,7 @@ function ConvertFramework(template, resource, path)
                         line = line:gsub(k, v[2])
                         line, needmanual = v[3](line, UnpackParameters(params))
 
-                        if needmanual then
+                        if needmanual == true then
                             print("^1"..resource.."/"..path..":"..linenumber.." has a function that requires manual adjustment! [Pattern: "..k.."]^0")
                         end
                     else

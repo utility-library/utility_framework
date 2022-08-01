@@ -7,6 +7,7 @@ Config = {}
     Config.GlobalSharedFunction = false -- Allow to use shared function in all script, not only in the script of the definition
     Config.SendBetaDebug = true -- Send beta information to the developer to help improve the framework
     Config.GlobalSkin = true -- If set to true the skin of the player will be synchronized with ALL servers that have the utility framework, otherwise the skin will be unique for your server, will be used an id that you can find on files/server-identifier.utility that at the first start will be generated automatically, if you want you can share that id with your servers to have the player have the same skin between servers
+    Config.TableCompression = "json" -- Compression method for tables, can be "json" or "msgpack" (msgpack its more efficient, ~30%, but its not modificable, it use binary format)
 
     Config.Database = {
         Identifier = "steam", -- available: steam/license
@@ -21,9 +22,9 @@ Config = {}
     Config.Start = {
         Position = vector4(-1037.66, -2737.75, 20.17, -29.65), -- x, y, z, heading
         Accounts = {
-            ["cash"]  = 500,
-            ["bank"]  = 10000,
-            ["black"] = 0
+            cash  = 500,
+            bank  = 10000,
+            black = 0
         },
         Job = {
             [1] = {"unemployed", 1}
@@ -48,7 +49,9 @@ Config = {}
         ["steam:11000010e44d76f"] = "admin"
     }
 --// Other
-
+    Config.Societies = {
+        "police"
+    }
 
     Config.TriggerBasicProtection = {
         AutoBan = true, -- If someone try to exploit our protection instantly ban it
@@ -56,7 +59,7 @@ Config = {}
 
     Config.Actived = {
         -- PlayerData/Database
-        VehiclesData = true, -- Active or no the uVehicle and the auto managment of vehicle trunk and other thing releated to the vehicles
+        Vehicles = true, -- Active or no the uVehicle and the auto managment of vehicle trunk and other thing releated to the vehicles
         
         Accounts = true,
         Identity = true,
@@ -89,15 +92,6 @@ Config = {}
 
     Config.CustomEmitter = {
         "Interaction",
-    }
-    
-    -- this is all the identity data, DONT TOUCH IF YOU DONT KNOW WHAT YOU ARE DOING --
-    Config.Identity = { -- The assignment is asigned by the index, so dont remove anything if the server is already started
-        [1] = "firstname",
-        [2] = "lastname",
-        [3] = "dateofbirth",
-        [4] = "sex",
-        [5] = "height"
     }
 
     Config.PrintType = {

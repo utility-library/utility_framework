@@ -11,22 +11,19 @@ local logId = math.random(0, 999)
     end
 
     Log = function(type, msg)
-        if Config.Logs.AdvancedLog.type ~= "disabled" and (type == "DebugInfo" or (Config.Logs.AdvancedLog.actived[type] or false)) then
-            if Config.Logs.AdvancedLog.type == "console" then
-                print(string.format("[^3%s^0] %s", type, msg))
+        local info = debug.getinfo(2,'S');
+        local fileName = info.source:match("[^/]*.lua$")
+        msg = "["..fileName:sub(0, #fileName - 4).."] "..msg
 
-            elseif Config.Logs.AdvancedLog.type == "file" then
+        if Config.Logs.AdvancedLog.type ~= "disabled" and (type == "DebugInfo" or (Config.Logs.AdvancedLog.actived[type])) then
+            if Config.Logs.AdvancedLog.type == "console" or Config.Logs.AdvancedLog.type == "both" then
+                print(string.format("[^3%s^0] %s", type, msg))
+            end
+            
+            if Config.Logs.AdvancedLog.type == "file" or Config.Logs.AdvancedLog.type == "both" then
                 local log = io.open(GetResourcePath("utility_framework").."/logs/Utility_log_"..currentDate..";"..logId..".txt", "a")
                 log:write(string.format("[%8s] [%6d] [%10s] | %s", os.date("%X"), math.floor(os.clock()), type, msg).."\n")
                 log:close()
-
-            elseif Config.Logs.AdvancedLog.type == "both" then
-                print(string.format("[^3%s^0] %s", type, msg))
-                
-                local log = io.open(GetResourcePath("utility_framework").."/logs/Utility_log_"..currentDate..";"..logId..".txt", "a")
-                log:write(string.format("[%8s] [%6d] [%10s] | %s", os.date("%X"), math.floor(os.clock()), type, msg).."\n")
-                log:close()
-                
             end
         end
     end
@@ -156,8 +153,8 @@ local logId = math.random(0, 999)
             return "trunk"
         elseif self.inventory then
             return "inventory"
-        elseif self.items then
-            return "items"
+        elseif self.datas.items then
+            return "items" 
         end
     end
 
@@ -236,16 +233,21 @@ local logId = math.random(0, 999)
 
         local type = IdentifyType(self)
         local inv = self[type]
+
+        if type == "items" then
+            inv = self.datas[type]
+        end
+
         local item = FindItem(name, inv, data)
 
         if not item then -- If dont exist
             table.insert(inv, {name, quantity, data})
 
-            Log("Item", "Added "..quantity.." of '"..name.."' to "..GetName(self, type)..""..(data and " with data "..json.encode(data) or "").." [Dont exist, created]")
+            Log("Item", " [Internal] Added "..quantity.." of '"..name.."' to "..GetName(self, type)..""..(data and " with data "..json.encode(data) or "").." [Dont exist, created]")
         else -- Already exist
             item[2] = item[2] + quantity
 
-            Log("Item", "Added "..quantity.." of '"..name.."' to "..GetName(self, type)..""..(data and " with data "..json.encode(data) or "").." [Already exist, added]")
+            Log("Item", " [Internal] Added "..quantity.." of '"..name.."' to "..GetName(self, type)..""..(data and " with data "..json.encode(data) or "").." [Already exist, added]")
         end
         
         -- Weight calculation
@@ -260,6 +262,11 @@ local logId = math.random(0, 999)
 
         local type = IdentifyType(self)
         local inv = self[type]
+        
+        if type == "items" then
+            inv = self.datas[type]
+        end
+
         local item, index = FindItem(name, inv, data)
         
         if not item then
@@ -273,7 +280,7 @@ local logId = math.random(0, 999)
             table.remove(inv, index)
         end
 
-        Log("Item", "Removed "..quantity.." of '"..name.."'"..(data and " with data "..json.encode(data) or "").." from "..GetName(self, type))
+        Log("Item", " [Internal] Removed "..quantity.." of '"..name.."'"..(data and " with data "..json.encode(data) or "").." from "..GetName(self, type))
 
         -- Weight calculation
         if Config.Inventory.Type == "weight" then
@@ -290,7 +297,10 @@ local logId = math.random(0, 999)
             quantity = item[2] or 0, 
             label = Config.Labels["items"][name] or name, 
             [Config.Inventory.Type] = Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight, 
+            
             data = item[3] or {}, 
+            usable = GlobalState["item_"..name],
+            
             __type = "item",
 
             found = item ~= false
@@ -309,6 +319,11 @@ local logId = math.random(0, 999)
         elseif Config.Inventory.Type == "limit" then
             local type = IdentifyType(self)
             local inv = self[type]
+
+            if type == "items" then
+                inv = self.datas[type]
+            end
+
             local itemq = GetItemInternal(item, nil, inv)
 
             if (itemq + quantity) <= weight_limit then
