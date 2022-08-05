@@ -170,11 +170,7 @@ local logId = math.random(0, 999)
             end
         end
         
-        if filterkeys == foundkeys then
-            return true
-        else
-            return false
-        end
+        return filterkeys == foundkeys
     end
 
     FindItem = function(name, inv, data)
@@ -223,7 +219,7 @@ local logId = math.random(0, 999)
         elseif type == "deposit" then
             return self.name
         elseif type == "items" then
-            return "stash:"..self.identifier
+            return self.identifier
         end
     end
 

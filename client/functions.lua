@@ -214,6 +214,25 @@ end
 
 exports("CreateMetaPlayer", CreateMetaPlayer)
 
+check = function(requested)
+    if requested and type(requested) == "table" then
+        local i = 0
+        while true do
+            i=i+1
+            local name, value = debug.getlocal(2, i)
+            if not name then break end
+
+            if requested[name] then
+                if type(value) ~= requested[name] then
+                    error(name..": "..requested[name].." expected, got "..type(value))
+                end
+            end
+        end
+    
+        return true
+    end
+end
+
 CheckFilter = function(data, filter)
     local filterkeys = 0
     local foundkeys = 0
@@ -226,9 +245,27 @@ CheckFilter = function(data, filter)
         end
     end
     
-    if filterkeys == foundkeys then
-        return true
-    else
+    return filterkeys == foundkeys
+end
+
+FindItems = function(name, inv, data)
+    local items = {}
+
+    for i=1, #inv do
+        if inv[i][1] == name then
+            if data then
+                if inv[i][3] and CheckFilter(inv[i][3], data) then
+                    table.insert(items, {inv[i], i})
+                end
+            else
+                table.insert(items, {inv[i], i})
+            end
+        end
+    end
+
+    if next(items) then
+        return items
+    else 
         return false
     end
 end
@@ -261,6 +298,55 @@ GetItemInternal = function(name, data, inv)
 
         found = item ~= false
     }
+end
+
+HaveItemQuantityInternal = function(name, quantity, data, inv)
+    local item = FindItem(name, inv, data)
+
+    if item then
+        return (item[2] >= quantity)
+    else
+        return nil
+    end
+end
+
+IdentifyType = function(self)    
+    if self.deposit then
+        return "deposit"
+    elseif self.trunk then
+        return "trunk"
+    elseif self.inventory then
+        return "inventory"
+    elseif self.datas.items then
+        return "items" 
+    end
+end
+
+CanCarryItemInternal = function(item, quantity, self)
+    local weight_limit = Config.Inventory.ItemWeight[name] or Config.Inventory.DefaultItemWeight
+
+    if Config.Inventory.Type == "weight" then
+        if (self.weight + (weight_limit * quantity)) > self.maxWeight then
+            return false
+        else
+            return true
+        end
+    elseif Config.Inventory.Type == "limit" then
+        local type = IdentifyType(self)
+        local inv = self[type]
+
+        if type == "items" then
+            inv = self.datas[type]
+        end
+
+        local itemq = GetItemInternal(item, nil, inv)
+
+        if (itemq + quantity) <= weight_limit then
+            return true
+        else
+            return false
+        end
+    end
 end
 
 GetSkinLabel = function(key)

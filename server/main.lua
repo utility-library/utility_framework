@@ -1,6 +1,3 @@
--- Log the token generated
-Log("TBP", 'Token generated => "'..Utility.Token..'"')
-
 Citizen.CreateThreadNow(function()
     if not StartupCheck() then return end
 

@@ -14,3 +14,5 @@ end)
 LocalPlayer.state.Labels = Config.Labels
 LocalPlayer.state.DefaultLanguage = Config.DefaultLanguage
 ut = exports["utility_framework"]
+
+mathm = addon("math")

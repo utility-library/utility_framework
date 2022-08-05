@@ -5,12 +5,12 @@ Config = {}
     Config.Maintenance = false    -- Allow only player without the user group to join (so only admin or plus)
     Config.AutoUpdateFXVersion = true
     Config.GlobalSharedFunction = false -- Allow to use shared function in all script, not only in the script of the definition
-    Config.SendBetaDebug = true -- Send beta information to the developer to help improve the framework
     Config.GlobalSkin = true -- If set to true the skin of the player will be synchronized with ALL servers that have the utility framework, otherwise the skin will be unique for your server, will be used an id that you can find on files/server-identifier.utility that at the first start will be generated automatically, if you want you can share that id with your servers to have the player have the same skin between servers
     Config.TableCompression = "json" -- Compression method for tables, can be "json" or "msgpack" (msgpack its more efficient, ~30%, but its not modificable, it use binary format)
+    Config.MissingFilterWarning = true -- if a trigger does not use a filter it will be written to the console, I do not recommend disabling this warning as it could result in basic security problems
 
     Config.Database = {
-        Identifier = "steam", -- available: steam/license
+        Identifier           = "steam", -- available: steam/license
         CreateOnFirstStartup = false,    -- Create the database on the first startup of the server
         SaveNameInDb         = true,    -- Save the name of the player in the database
         MaxDaysPlayer        = -1,      -- If a player doesn't login for this amount of days or plus he will be automatically deleted from the database (if you want to disable this function set it to -1)
@@ -53,9 +53,14 @@ Config = {}
         "police"
     }
 
-    Config.TriggerBasicProtection = {
-        AutoBan = true, -- If someone try to exploit our protection instantly ban it
-    } 
+    -- if some filter fail the framework will run this function
+    Config.FilterFail = function(source, eventName, filter, reason)
+        if filter.Debug then -- if debugging
+            print("[^4Debug^0] ^1filter check for event "..eventName.." called by "..source.." failed, reason: "..reason.."^0")
+        else
+            GetPlayer(source).Ban("filter returned false in the event "..eventName..", reason: "..reason.." [Auto Ban]")
+        end
+    end
 
     Config.Actived = {
         -- PlayerData/Database

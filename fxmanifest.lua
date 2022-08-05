@@ -11,8 +11,7 @@ client_scripts {
     "client/variables.lua",
     "client/init/*.lua",
     "client/managers/*.lua",
-    "client/builders/*.lua",
-    "client/classes/*.lua",
+    "client/classes/**.lua",
     "client/commands.lua",
     "client/events.lua",
     "client/main.lua",
@@ -28,8 +27,7 @@ server_scripts {
     "server/init/*.lua",
     "server/variables.lua",
     
-    "server/managers/*.lua",
-    "server/managers/*.js",
+    "server/managers/*.*",
 
     "server/classes/**.lua",
     "server/commands.lua",
@@ -58,9 +56,5 @@ files {
 }
 
 ui_page "client/html/index.html"
-
-dependencies {
-    "oxmysql"
-}
 
 lua54 "yes"

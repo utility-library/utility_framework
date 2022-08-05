@@ -1,16 +1,8 @@
 --// Variables
 local id = GetPlayerServerId(PlayerId())
-
-local Keys = {
-    Public = nil,
-    Private = nil,
-    Token = nil
-}
-
 local privateKey, publicKey = nil, nil
 local utilityDataHandle = ""
 
-local msgpack_pack = msgpack.pack
 local SavedTriggerServerEvent = TriggerServerEvent
 
 Utility = exports["utility_framework"]
@@ -21,13 +13,14 @@ ServerIdentifier = nil
 
 --// InternalFunctions
 function uPlayerPopulate()
+    local GetVehiclePedIsIn, GetEntityCoords, GetEntityHeading, GetSelectedPedWeapon, IsPedArmed, GetCurrentPedWeaponEntityIndex, DoesEntityExist, PlayerPedId = GetVehiclePedIsIn, GetEntityCoords, GetEntityHeading, GetSelectedPedWeapon, IsPedArmed, GetCurrentPedWeaponEntityIndex, DoesEntityExist, PlayerPedId
+
     uPlayer = setmetatable({}, {
         __index = function(_, k)
-            --print(k, LocalPlayer.state[k])
             if k == "vehicle" or k == "veh" then
                 return GetVehiclePedIsIn(uPlayer.ped)
             elseif k == "coords" then
-                if GetCurrentResourceName() == "utility_framework" then
+                if ResourceName == "utility_framework" then
                     return LocalPlayer.state.coords
                 else
                     return GetEntityCoords(uPlayer.ped)
@@ -51,7 +44,7 @@ function uPlayerPopulate()
                     
                     return ped
                 end
-            elseif type(LocalPlayer.state[k]) == "string" and LocalPlayer.state[k]:find("call") then
+            elseif LocalPlayer.state[k] and type(LocalPlayer.state[k]) == "string" and LocalPlayer.state[k]:find("call") then
                 return function(...)
                     local v = LocalPlayer.state[k]
                     v = v:gsub("call:", "")
@@ -61,7 +54,16 @@ function uPlayerPopulate()
                     return exports[resource][name](nil, ...)
                 end
             else
-                return LocalPlayer.state[k]
+                --print(Utility[k])
+                if LocalPlayer.state[k] then
+                    return LocalPlayer.state[k]
+                else
+                    if Utility[k] then 
+                        return function(...)
+                            return Utility[k](nil, ...)
+                        end
+                    end
+                end
             end
         end,
         __newindex = function(_, k, v)
@@ -156,7 +158,7 @@ function uPlayerPopulate()
         
         -- Societies 
             GetSocietyVehicles = function(society)
-                
+                return TriggerServerCallback("Utility:Society:GetSocietyVehicles")
             end
 
         -- Vehicle
@@ -216,27 +218,6 @@ Citizen.CreateThread(function()
 end)
 
 Citizen.CreateThread(function()
-    while GetResourceState("utility_framework") ~= "started" do Citizen.Wait(50) end
-    Keys.Public, Keys.Private = exports["utility_framework"]:GenerateKeys()
-
-    local func = exports["utility_framework"]:UtilityOnTop(Keys.Public)
-
-    -- When you join the utility_framework dont load up instantly, so retry until func is defined
-    while not func do 
-        func = exports["utility_framework"]:UtilityOnTop(Keys.Public) 
-        Citizen.Wait(50) 
-    end
-
-    local encrypted = func()
-
-    print("[^2API^0] ^3Recieved encrypted token from tbp client^0")
-    Keys.Token = exports["utility_framework"]:Decrypt(Keys.Private, encrypted)
-    print("[^2API^0] ^3Decrypted token: "..Keys.Token.."^0")
-
-    collectgarbage("collect") -- Collect garbage to free memory from the decryption and the keys generation
-end)
-
-Citizen.CreateThread(function()
     while GetResourceState("utility_framework") ~= "started" do -- wait the framework
         Citizen.Wait(1)
     end
@@ -245,14 +226,14 @@ Citizen.CreateThread(function()
     uPlayerPopulate() -- Populating uPlayer
     uVehiclePopulate() -- Populating uVehicles
     
-    GetStash = function(identifier, replicate) -- wrapper
+    -- wrappers
+    GetStash = function(identifier, replicate)
         return exports["utility_framework"]:GetStash(identifier, replicate) 
     end
 
-    while Keys.Token == nil do
-        Citizen.Wait(1)
+    GetSociety = function(name)
+        return exports["utility_framework"]:GetSociety(name) 
     end
-    Citizen.Wait(5)
 
     Loaded = true
     if Load then
@@ -262,7 +243,7 @@ end)
 
 --// Callback
 RegisterClientCallback = function(name, _function)
-    local name = enc.Utf8ToB64(name) -- Use the same format of secured events (mask the event)
+    local name = enc.Utf8ToB64(name)
 
     RegisterNetEvent("Utility:External:"..name)
     AddEventHandler("Utility:External:"..name, function(...)
@@ -397,6 +378,8 @@ Citizen.CreateThreadNow(function()
     end
 
     -- Emitters
+    Citizen.Wait(50)
+
     for k,v in pairs(uConfig.CustomEmitter) do
         if _G[v] then
             RegisterNetEvent("Utility:Emitter:"..v)
@@ -832,43 +815,15 @@ end)
         end
     end
 
-    local RequestPublicKey = function() -- Request the server public key to encrypt the token
-        return TriggerServerCallback("Utility:RequestPublicKey")
-    end
-
-    local IsEventSecured = function(name) -- Check if we need to send also the token or not
-        local se = GlobalState.SecuredEvents
-        
-        for i=1, #se do
-            if se[i] == name then
-                return true
-            end
-        end
-    end
-
     TriggerServerEvent=function(c,...)
-        if IsEventSecured(c) then
-            while Keys.Token == nil do -- Wait the framework
-                Citizen.Wait(1)
-            end
-            
-            -- Request server the public RSA Key (to share information securely)
-            if not Keys.ServerPublic then
-                Keys.ServerPublic = RequestPublicKey()
-            end
-    
-            print("[^2API^0] ^3Encrypting token with server public key^0")
-            local tosend = exports["utility_framework"]:Encrypt(Keys.ServerPublic, Keys.Token)
-            print("[^2API^0] ^3Sending to the server: "..tosend.."^0")
-    
-    
-            --print("[DEBUG] [TBP] Sending server trigger: Encrypted Token  = "..d..", Key  = "..e)
-            local f=enc.Utf8ToB64(c)SavedTriggerServerEvent("Utility:External:"..f,msgpack_pack(tosend),...)
-            --print("[DEBUG] [TBP] Sending server trigger: "..c.." => Utility:External:"..f)
-        else
-            SavedTriggerServerEvent(c, ...)
-        end
+        local f=enc.Utf8ToB64(c)
+        SavedTriggerServerEvent("Utility:External:"..f, ...)
     end
+
+    TriggerScriptEvent=function(c, ...)
+        TriggerServerEvent(GetCurrentResourceName()..":"..c, ...)
+    end
+
 --// Client cache
     SetResourceCache = function(key, value)
         SetResourceKvp(key, value)
@@ -978,8 +933,8 @@ end)
     ResetSkin = function()
         exports["utility_framework"]:ResetSkin()
     end
-    ApplySkin = function(skin, dontsave)
-        return exports["utility_framework"]:ApplySkin(skin, dontsave)
+    ApplySkin = function(skin, temp)
+        return exports["utility_framework"]:ApplySkin(skin, temp)
     end
     GetSkinMaxVals = function()
         return exports["utility_framework"]:GetSkinMaxVals()
@@ -990,19 +945,6 @@ end)
 
     -- Custom State Bag
     NewStateBag = function(...) exports["utility_framework"]:NewCustomStateBag(...) end
-
-    -- RSA
-    GenerateKeys = function()
-        return exports["utility_framework"]:GenerateKeys()
-    end
-
-    Encrypt = function(publicKey, data)
-        return exports["utility_framework"]:Encrypt(publicKey, data)
-    end
-
-    Decrypt = function(privateKey, data)
-        return exports["utility_framework"]:Decrypt(privateKey, data)
-    end
 
 --// Fix the Enter/Exit vehicle emitters
 

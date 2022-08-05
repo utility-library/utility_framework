@@ -110,7 +110,7 @@ if Clothes == nil or next(Clothes) == nil then
 end
 
 -- Function
-function SetSkin(ped, k, v)
+function SetSkin(ped, k, v, temp)
     SetSkinPedProp = function(base, id)
         if k == base..'_1' then
             if v == -1 then
@@ -194,15 +194,21 @@ function SetSkin(ped, k, v)
     -- Bracelets
     SetSkinPedProp("bracelets", 7)
 
-    Clothes[k] = v
+    if not temp then
+        Clothes[k] = v
+    end
 end
 
-function ApplySkin(skin)
+function ApplySkin(skin, temp)
     local ped = PlayerPedId()
 
     for k,v in pairs(skin) do
         print("Applying skin "..k.." "..v)
-        SetSkin(ped, k,v)
+        SetSkin(ped, k,v, temp)
+
+        if not temp then
+            SetResourceKvp(kvp, json.encode(Clothes))
+        end
     end
 end
 
@@ -268,7 +274,7 @@ Citizen.CreateThread(function()
             LocalPlayer.state.ped = player
             --SetEntityCoords(player, _coords[1], _coords[2], _coords[3])
 
-            ApplySkin(Clothes)
+            ApplySkin(Clothes, true)
             
             if uPlayer.weapons ~= nil then
                 for weapon, ammo in pairs(uPlayer.weapons) do
@@ -348,7 +354,7 @@ function OpenSkinMenu(onclose, filter, noexport)
         elseif data.value == "import" then
             menu.dialog("Place here the data exported", function(text)
                 local newSkin = json.decode(text)
-                ApplySkin(newSkin)
+                ApplySkin(newSkin, true)
             end)
         else
             --[[local skip = false
@@ -367,7 +373,7 @@ function OpenSkinMenu(onclose, filter, noexport)
         
             ApplySkin({
                 [data.value] = data.count
-            })
+            }, true)
     
             -- Refresh the content data
             local maxValues = GetSkinMaxVals()

@@ -12,11 +12,13 @@ AddEventHandler("Utility:Loaded", function()
     local uPlayer = GetPlayer(identifier)
 
     if uPlayer then
-        if not uPlayer:IsBuilded() then 
+        if not uPlayer:IsPreBuilded() and not uPlayer:IsBuilded() then 
             uPlayer:PreBuild()
         end
     
-        uPlayer:Build(source)
+        if not uPlayer:IsBuilded() then
+            uPlayer:Build(source)
+        end
     
         for k,v in pairs(uPlayer) do
             if type(v) ~= "function" then

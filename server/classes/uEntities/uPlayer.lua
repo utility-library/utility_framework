@@ -139,6 +139,9 @@ local uPlayer = class {
         }
     end,
 
+    IsPreBuilded = function(self)
+        return self.__type == "preuPlayer"
+    end,
     IsBuilded = function(self)
         return self.__type == "uPlayer"
     end,
@@ -352,7 +355,7 @@ function uPlayerCreateMethods(self)
 
             if GlobalState.UsableItem[name] then
                 Log("Item", self.source.." used "..name)
-                TriggerEvent("Utility_Usable:"..name, self)
+                TriggerEvent("Utility:Usable:"..name, self)
                 return true
             else
                 return false

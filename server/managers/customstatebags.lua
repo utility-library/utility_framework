@@ -8,6 +8,8 @@ local GetStateBagValue = function(identifier, k)
 end
 
 local SetStateBagValue = function(identifier, k, v, r)
+    --print("Set state bag value for "..identifier, k, v, r)
+
     if identifier and StateBags[identifier] then
         StateBags[identifier][k] = v
 
@@ -46,9 +48,15 @@ NewCustomStateBag = function(identifier, r)
 end
 
 RegisterServerCallback("Utility:GetStateBagValue", function(identifier)
-    --print(identifier, json.encode(StateBags, {indent = true}))
     if identifier and StateBags[identifier] then
+        --print("Returning state bag "..identifier.." to "..source, json.encode(StateBags[identifier]))
         return StateBags[identifier]
+    else
+        print("state bag with that identifier dont exist\navailable:\n")
+
+        for k,v in pairs(StateBags) do
+            print(k)
+        end
     end
 end)
 

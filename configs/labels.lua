@@ -100,7 +100,7 @@ Config.Labels = {
 
     -- Framework Translation
     ["framework"] = {
-        ['WelcomeMsg']       = "Welcome aboard the Utility Framework!\nFirst of all i would like to thank you for choosing the utility and trusting my project.\nThe Utility will start the installation process of the whole framework by itself in a few moments.\nIn the installation process, the database will be configured and basic permissions will be configured to make the whole framework work.",
+        ['WelcomeMsg']       = "Welcome aboard the Utility Framework!\nFirst of all i would like to thank you for choosing the utility and trusting my project.\nThe Utility Framework will start the installation process of the framework by itself in a few moments.\nIn the installation process, you will have to inject the database and\nthe framework will configure basic permissions to make the whole framework work.",
         ['DbCheckTurnedOff'] = "The framework had noticed that you had set ^4Startup^0 to ^2true^0 but you already had the ^4users table^0 and so it set it to ^1false^0 to save resources ^3automatically for you^0",
         ['LoadedMsg']        = "Loaded ^2%d^0 %s",
         ['StartedIn']        = "Started in: %s ms",

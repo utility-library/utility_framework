@@ -246,6 +246,10 @@ uStash = class {
     
     -- Constructor
     _Init = function(self)
+        if not self.identifier:find(":") then
+            self.identifier = "stash:"..self.identifier
+        end
+
         if self.datas.items == nil then self.datas.items = {} end
 
         if Config.Inventory.Type == "weight" then
@@ -263,9 +267,17 @@ uStash = class {
         local start = os.clock()
 
         self.__type = "uStash"
-        self.state = NewCustomStateBag("stash:"..self.identifier)
-        self = BuildFunctions(self)
+        self.state = NewCustomStateBag(self.identifier)
         self = BuildWeight(self)
+
+        for k,v in pairs(self) do
+            if type(v) ~= "function" and k ~= "state" then
+                self.state[k] = v
+            end
+        end
+
+        self = BuildFunctions(self)
+
 
         Utility.Stashes[self.identifier] = self
         Log("Building", "uStash builded for "..self.identifier.." in "..((os.clock() - start)*1000).." ms")

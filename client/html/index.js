@@ -1,3 +1,12 @@
+function Post(event, obj) {
+    fetch(`https://${GetParentResourceName()}/`+event, {
+        method: "POST",
+        body: JSON.stringify(obj)
+    })
+}
+
+Post("Ready", {})
+
 var _gdata = undefined;
 var importing = false;
 
