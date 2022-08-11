@@ -1,6 +1,6 @@
 <h1 align="center">Utility Framework [Beta]</h1>
 <p align="center">
-  <b><a href="https://discord.gg/BV2hsRXmpy">Discord</a></b></br>
+  <b><a href="https://discord.gg/BV2hsRXmpy">Discord</a> - Documentation (Coming soon) </b></br>
   We put community and developer experience first.</br>
   Our mission is to revolutionize fivem by providing more importance to open source and freeware.
 </p>
