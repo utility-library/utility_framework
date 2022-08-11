@@ -236,18 +236,6 @@ end
 end)]]
 
 -- Player spawn (skin, weapon, ...)
-RegisterCommand("test", function()
-    local _coords = uPlayer.coords
-    exports.spawnmanager:spawnPlayer({
-        x = _coords[1],
-        y = _coords[2],
-        z = _coords[3],
-        heading = 0.0,
-        model = `mp_m_freemode_01`, -- dont know if works
-        skipFade = false
-    }, function() end)
-end)
-
 Citizen.CreateThread(function()
     exports.spawnmanager:setAutoSpawn(false)
 
@@ -323,8 +311,8 @@ function OpenSkinMenu(onclose, filter, noexport)
     local content = {}
     if not noexport then
         content = {
-            {label = GetSkinLabel("export"), value = "export"},
-            {label = GetSkinLabel("import"), value = "import"},
+            {text = GetSkinLabel("export"), value = "export"},
+            {text = GetSkinLabel("import"), value = "import"},
         }
     end
 
@@ -333,15 +321,16 @@ function OpenSkinMenu(onclose, filter, noexport)
         if filter then
             for i2=1, #filter do
                 if filter[i2] == Components[i].name then
-                    table.insert(content, {label = Components[i].label, type = "scroll", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
+                    table.insert(content, {text = Components[i].label, type = "slider", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
                 end
             end
         else
-            table.insert(content, {label = Components[i].label, type = "scroll", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
+            print(json.encode({text = Components[i].label, type = "slider", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name}))
+            table.insert(content, {text = Components[i].label, type = "slider", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
         end
     end
 
-    TriggerEvent("Utility:OpenMenu", "<fa-tshirt> Skin Menu", content, function(data, menu)
+    CreateMenu("Skin Menu", content, function(self, data)
         if data.value == "export" then
             SendNUIMessage({
                 clipboard = true,
@@ -352,8 +341,10 @@ function OpenSkinMenu(onclose, filter, noexport)
             AddTextComponentSubstringPlayerName("Exported skin data!")
             DrawNotification(false, true)
         elseif data.value == "import" then
-            menu.dialog("Place here the data exported", function(text)
-                local newSkin = json.decode(text)
+            CreateDialog("Import Skin", "Enter the data for the skin to be imported below", {
+                {name = "skin", placeholder = "{}"}
+            }, function(self, data)
+                local newSkin = json.decode(data.skin)
                 ApplySkin(newSkin, true)
             end)
         else
@@ -380,8 +371,8 @@ function OpenSkinMenu(onclose, filter, noexport)
             content = {}
             if not noexport then
                 content = {
-                    {label = GetSkinLabel("export"), value = "export"},
-                    {label = GetSkinLabel("import"), value = "import"},
+                    {text = GetSkinLabel("export"), value = "export"},
+                    {text = GetSkinLabel("import"), value = "import"},
                 }
             end
         
@@ -389,22 +380,22 @@ function OpenSkinMenu(onclose, filter, noexport)
                 if filter then
                     for i2=1, #filter do
                         if filter[i2] == Components[i].name then
-                            table.insert(content, {label = Components[i].label, type = "scroll", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
+                            table.insert(content, {text = Components[i].label, type = "slider", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
                         end
                     end
                 else
-                    table.insert(content, {label = Components[i].label, type = "scroll", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
+                    table.insert(content, {text = Components[i].label, type = "slider", count = Clothes[Components[i].name], min = Components[i].min, max = maxValues[Components[i].name], value = Components[i].name})
                 end
             end
 
             -- Update the menu but dont play the refresh animation
-            menu.update(content, false)
+            self.update("Skin Menu", content)
         end
-    end, function(sub,data,menu)
+    end, function(menu)
         if onclose then
             onclose(function() 
                 SetResourceKvp(kvp, json.encode(Clothes))
-            end, sub, data, menu)
+            end, menu)
         else
             SetResourceKvp(kvp, json.encode(Clothes))
         end

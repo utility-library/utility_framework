@@ -81,11 +81,6 @@ if Config.Actived.NoWeaponDrop then
     end)
 end
 
-Citizen.CreateThread(function()
-    Citizen.Wait(100) -- Wait that NUI Load
-    SendNUIMessage({imgdir = Config.Inventory.NotificationImageBaseDirectory})
-end)
-
 local pressedF = false
 RegisterCommand("enter_exitvehicle", function(source, args)
     local veh = uPlayer.veh

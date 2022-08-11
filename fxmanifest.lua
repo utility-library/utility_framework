@@ -7,6 +7,8 @@ version '0.0.1'
 client_scripts {
     "config.lua",
     "configs/*.lua",
+    --"client/addons/class.lua",
+
     "client/functions.lua",
     "client/variables.lua",
     "client/init/*.lua",
@@ -52,7 +54,7 @@ files {
     "server/addons/*.lua",
     "client/addons/*.lua",
     "client/api.lua",
-    "client/html/**/*.*"
+    "client/html/**.*"
 }
 
 ui_page "client/html/index.html"

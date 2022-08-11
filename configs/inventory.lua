@@ -14,6 +14,4 @@ Config.Inventory = {
     ItemWeight    = { -- The list of the limit for any item or the weight of any item (weight/limit)
         ["example"] = 10
     },
-
-    NotificationImageBaseDirectory = "utility_inventory/html/items" -- The directory where the item images are loaded from (the images must be in an external resource)
 }

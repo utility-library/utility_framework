@@ -16,3 +16,4 @@ LocalPlayer.state.DefaultLanguage = Config.DefaultLanguage
 ut = exports["utility_framework"]
 
 mathm = addon("math")
+addon("class")

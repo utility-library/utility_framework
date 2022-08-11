@@ -134,6 +134,7 @@ local uPlayer = class {
             PreBuild        = self.PreBuild,
             Demolish        = self.Demolish,
             IsBuilded       = self.IsBuilded,
+            IsPreBuilded    = self.IsPreBuilded,
 
             ToSave = true
         }
@@ -265,7 +266,6 @@ function uPlayerCreateMethods(self)
             end
             
             Log("Item", "Added "..quantity.." "..name.." to "..self.source)
-            TriggerClientEvent("Utility:ItemNotification", self.source, name, "+ "..quantity)
             EmitEvent("ItemAdded", self.source, name, quantity, data)
         end
 
@@ -304,7 +304,6 @@ function uPlayerCreateMethods(self)
             end
             
             Log("Item", "Removed "..quantity.." "..name.." from "..self.source)
-            TriggerClientEvent("Utility:ItemNotification", self.source, name, "- "..quantity)
             EmitEvent("ItemRemoved", self.source, name, quantity, item.data)
         end
 

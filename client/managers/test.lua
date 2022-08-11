@@ -1,8 +1,4 @@
-CreateMenu = function(title, content, callback, closecb) 
-    TriggerEvent("Utility:OpenMenu", title, content, callback, closecb)
-end
-
-RegisterCommand("openinv", function()
+--[[RegisterCommand("openinv", function()
     local elements = {}
 
     for k,v in pairs(uPlayer.inventory) do
@@ -26,6 +22,29 @@ RegisterCommand("openinv", function()
     end)
 end)
 RegisterKeyMapping("openinv", "Open Inventory Test", "keyboard", "F3")
-
+]]
 
 --print(GetConvar("ui_updateChannel", "Test"))
+
+RegisterCommand("testMenu", function()
+    CreateMenu("Test", {
+        {text="Slider", icon="mdiTestTube", type="slider", count=0, min=0, max=10},
+        {text="Button", icon="mdiTestTube"},
+    }, function(self, data)
+        menu.sub("Test2", {
+            {text = "Diocane", icon = "mdiTestTube"}
+        }, function(self, data)
+            print("Sub: "..(data.count or data.text))
+        end)
+
+        print(data.count or data.text)
+    end)
+end)
+
+RegisterCommand("testDialog", function()
+    CreateDialog("Import skin", "insert a description here nigga", {
+        {name = "Negro", placeholder = "frocio"}
+    }, function(self, data)
+        print("Value: "..data.Negro)
+    end)
+end)

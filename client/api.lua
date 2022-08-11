@@ -442,12 +442,22 @@ end)
         end
 
 --// Menu
-    CreateMenu = function(title, content, callback, closecb) 
-        TriggerEvent("Utility:OpenMenu", title, content, callback, closecb)
+    CreateMenu = function(title, menu, cb, close)
+        return Utility:CreateMenu(title, menu, cb, close)
     end
 
-    CloseAllMenu = function()
-        TriggerEvent("Utility:Close")
+    CreateDialog = function(title, description, inputs, cb, close)
+        return Utility:CreateDialog(title, description, inputs, cb, close)
+    end
+
+    CloseMenu = function()
+        Utility:Close("menu")
+    end
+    CloseDialog = function()
+        Utility:Close("dialog")
+    end
+    CloseAll = function()
+        Utility:Close()
     end
 
 --// Vehicle

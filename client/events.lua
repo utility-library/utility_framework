@@ -5,17 +5,6 @@ AddEventHandler("Utility:Notification", function(msg)
     DrawNotification(false, true)
 end)
 
-RegisterNetEvent("Utility:ItemNotification")
-AddEventHandler("Utility:ItemNotification", function(name, text)
-    --print("Sending "..text)
-
-    SendNUIMessage({
-        item = true,
-        name = name,
-        changed = text
-    })
-end)
-
 RegisterNetEvent("Utility:ButtonNotification")
 AddEventHandler("Utility:ButtonNotification", function(msg, duration)
     for word in string.gmatch(msg, "{.*}") do msg = msg:gsub(word, Utility.Button[word]) end
@@ -33,7 +22,7 @@ RegisterNetEvent("Utility:SetClipboard")
 AddEventHandler("Utility:SetClipboard", function(text)
     if type(text) == "string" then
         SendNUIMessage({
-            clipboard = true,
+            type = "clipboard",
             text = text 
         })
     end
