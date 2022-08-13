@@ -125,27 +125,42 @@ local UtilityData = {
 
 --// Functions
     -- Callback
-        TriggerClientCallback = function(name, id, _cb, ...)
+        TriggerClientCallbackAsync = function(name, id, _function, ...)
+            local name = enc.Utf8ToB64(name)
+            local eventHandler = nil
+        
+            -- Register a new event to handle the callback from the client
+            SavedRegisterServerEvent("Utility:External:"..name)
+            eventHandler = SavedAddEventHandler("Utility:External:"..name, function(data)
+                if source == id then
+                    if type(_function) == "function" then _function(table.unpack(data)) end
+                    RemoveEventHandler(eventHandler)
+                end
+            end)
+            
+            TriggerClientEvent("Utility:External:"..name, id, ...) -- Trigger the client event
+        end
+
+        TriggerClientCallback = function(name, id, ...)
             local name = enc.Utf8ToB64(name)
             local eventHandler = nil
             local p = promise:new()
 
-            TriggerClientEvent("Utility:External:"..name, id, ...) -- Trigger the client event
-
-            -- Wait for the client to produce an output and that the event is triggered
+            -- Register a new event to handle the callback from the client
             SavedRegisterServerEvent("Utility:External:"..name)
             eventHandler = SavedAddEventHandler("Utility:External:"..name, function(data)
-                if source == id then -- If the source is the same as the selected id (check for fake calls)
+                if source == id then
                     p:resolve(data)
                     RemoveEventHandler(eventHandler)
                 end
             end)
+            
+            TriggerClientEvent("Utility:External:"..name, id, ...) -- Trigger the client event
 
-            local callbackData = Citizen.Await(p)
-            _cb(table.unpack(callbackData)) -- Unpack the data and call the callback
+            return table.unpack(Citizen.Await(p))
         end
 
-        RegisterServerCallback = function(name, cb)
+        RegisterServerCallback = function(name, cb, filters)
             local b64nameC = enc.Utf8ToB64(name)
             
             RegisterServerEvent(name)
@@ -159,7 +174,7 @@ local UtilityData = {
                 if _cb ~= nil then -- If the callback is not nil
                     TriggerClientEvent(b64nameC, source, _cb) -- Trigger the client event
                 end
-            end)
+            end, filters)
         end
     -- Item
         RegisterItemUsable = function(name, cb)
@@ -249,7 +264,7 @@ local UtilityData = {
 
             RegisterServerCallback("SharedFunction:"..name, function(...)
                 return (func(...) or "NoReturn")
-            end)
+            end, {})
         end
 
         CheckTableFilter = function(data, filter)
@@ -313,7 +328,7 @@ local UtilityData = {
         local reason = ""
 
         for name, module in pairs(UtilityData.FilterModules) do            
-            if filter[name] then
+            if filter and filter[name] then
                 local module_retval = nil
                 
                 if #filter[name] > 0 then -- if have index as number unpack it like args
