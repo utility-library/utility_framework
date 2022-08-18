@@ -227,36 +227,21 @@ end)
 
 RegisterCommand("coords", function(source)
     local coord = GetEntityCoords(PlayerPedId())
-    
-    SendNUIMessage({
-        clipboard = true,
-        text = "vector3("..mathm.round(coord.x, 2)..", "..mathm.round(coord.y, 2)..", "..mathm.round(coord.z, 2)..")"    
-    })
+    TriggerEvent("Utility:SetClipboard", "vector3("..mathm.round(coord.x, 2)..", "..mathm.round(coord.y, 2)..", "..mathm.round(coord.z, 2)..")")
 end)
 
 RegisterCommand("coords4", function(source)
     local coord = GetEntityCoords(PlayerPedId())
-    
-    SendNUIMessage({
-        clipboard = true,
-        text = "vector4("..mathm.round(coord.x, 2)..", "..mathm.round(coord.y, 2)..", "..mathm.round(coord.z, 2)..", "..mathm.round(GetEntityHeading(PlayerPedId()), 2)..")"    
-    })
+    TriggerEvent("Utility:SetClipboard", "vector4("..mathm.round(coord.x, 2)..", "..mathm.round(coord.y, 2)..", "..mathm.round(coord.z, 2)..", "..mathm.round(GetEntityHeading(PlayerPedId()), 2)..")")
 end)
 
 RegisterCommand("rotation", function(source)
     local rotation = GetEntityRotation(PlayerPedId())
-    
-    SendNUIMessage({
-        clipboard = true,
-        text = "vector3("..mathm.round(rotation.x, 2)..", "..mathm.round(rotation.y, 2)..", "..mathm.round(rotation.z, 2)..")"    
-    })
+    TriggerEvent("Utility:SetClipboard", "vector3("..mathm.round(rotation.x, 2)..", "..mathm.round(rotation.y, 2)..", "..mathm.round(rotation.z, 2)..")")
 end)
 
 RegisterCommand("heading", function(source)
-    SendNUIMessage({
-        clipboard = true,
-        text = tostring(GetEntityHeading(PlayerPedId()))
-    })
+    TriggerEvent("Utility:SetClipboard", tostring(GetEntityHeading(PlayerPedId())))
 end)
 
 RegisterCommand("die", function(source, args)

@@ -384,11 +384,6 @@ Citizen.CreateThreadNow(function()
         if _G[v] then
             RegisterNetEvent("Utility:Emitter:"..v)
             AddEventHandler("Utility:Emitter:"..v, function(...)
-                --[[print("Emitting "..v)
-
-                for k,v in pairs(debug.getinfo(_G[v])) do
-                    print(k,v)
-                end]]
                 _G[v](...)
             end)
         end
