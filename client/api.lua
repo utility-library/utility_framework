@@ -1,9 +1,10 @@
 --// Variables
 local id = GetPlayerServerId(PlayerId())
-local privateKey, publicKey = nil, nil
 local utilityDataHandle = ""
 
 local SavedTriggerServerEvent = TriggerServerEvent
+
+UFAPI = true -- tracker for other resource to know if the utility framework API is loaded in the manifest
 
 Utility = exports["utility_framework"]
 Loaded = false
@@ -81,105 +82,26 @@ function uPlayerPopulate()
             return id
         end
     })
+    
+    -- Societies 
+        GetSocietyVehicles = function(society)
+            return TriggerServerCallback("Utility:Society:GetSocietyVehicles", society)
+        end
 
-    -- Assigning functions to the uPlayer
-        -- Money
-            GetMoney = function(type)
-                return exports["utility_framework"]:GetMoney(type)
-            end
+    -- Vehicle
+        SpawnOwnedVehicle = function(plate, coords, network)
+            local veh = exports["utility_framework"]:GetVehicle(plate)
 
-            HaveMoneyQuantity = function(type, quantity)
-                return exports["utility_framework"]:HaveMoneyQuantity(type, quantity)
-            end
-        -- Item
-            GetItem = function(name, itemid)
-                return exports["utility_framework"]:GetItem(name, itemid)
-            end
-            IsItemUsable = function(name, id)
-                return exports["utility_framework"]:IsItemUsable(name, id)
-            end
-
-            UseItem = function(name, id)
-                exports["utility_framework"]:UseItem(name, id)
-            end
+            RequestModel(veh.data.model)
             
-            HaveItemQuantity = function(name, quantity)
-                return exports["utility_framework"]:HaveItemQuantity(name, quantity)
-            end
-            CanCarryItem = function(name, quantity)
-                return exports["utility_framework"]:CanCarryItem(name, quantity)
-            end
-        -- Weapon
-            AddWeapon = function(weapon, ammo, equipNow)
-                exports["utility_framework"]:AddWeapon(weapon, ammo, equipNow)
+            while not HasModelLoaded(veh.data.model) do
+                Citizen.Wait(1)
             end
 
-            RemoveWeapon = function(weapon)
-                exports["utility_framework"]:RemoveWeapon(weapon)
-            end
-
-            GetWeapons = function()
-                return exports["utility_framework"]:GetWeapons()
-            end
-
-            GetWeaponLabel = function(name)
-                return uConfig.Labels["weapons"][name] or name
-            end
-
-            HaveWeapon = function(name)
-                return exports["utility_framework"]:HaveWeapon(name)
-            end
-        -- License
-            GetLicenses = function()      
-                return exports["utility_framework"]:GetLicenses()
-            end
-
-            HaveLicense = function(name)
-                return exports["utility_framework"]:HaveLicense(name)
-            end
-        -- Identity
-            GetIdentity = function(data)
-                return exports["utility_framework"]:GetIdentity(data)
-            end
-        -- Billing
-            GetBills = function()
-                return exports["utility_framework"]:GetBills()
-            end
-
-        -- IsDead
-            IsDead = function()
-                return exports["utility_framework"]:IsDead()
-            end
-
-        -- Other info integration
-            Get = function(id)
-                return exports["utility_framework"]:Get(id)
-            end
-        
-        -- Societies 
-            GetSocietyVehicles = function(society)
-                return TriggerServerCallback("Utility:Society:GetSocietyVehicles")
-            end
-
-        -- Vehicle
-            SpawnOwnedVehicle = function(plate, coords, network)
-                local veh = exports["utility_framework"]:GetVehicle(plate)
-
-                RequestModel(veh.data.model)
-                
-                while not HasModelLoaded(veh.data.model) do
-                    Citizen.Wait(1)
-                end
-
-                local veh = CreateVehicle(veh.data.model, coords, 0.0, network)
-                SetVehicleComponents(veh, veh.data)
-                return veh, true
-            end
-
-        -- Config
-            FrameworkConfig = function(field)
-                return exports["utility_framework"]:Config(field)
-            end
+            local veh = CreateVehicle(veh.data.model, coords, 0.0, network)
+            SetVehicleComponents(veh, veh.data)
+            return veh, true
+        end
 
     while not LocalPlayer.state.loaded do
         --print(LocalPlayer.state.vehicles)
@@ -407,7 +329,7 @@ end)
                 return {
                     label = uConfig.Jobs.Configuration[job].name,
                     grades = uConfig.Jobs.Configuration[job].grades,
-                    workers = TriggerServerCallback("Utility:GetWorker", job)
+                    workers = workers and TriggerServerCallback("Utility:GetWorker", job)
                 }
             else
                 return {
@@ -641,7 +563,7 @@ end)
         EndTextCommandDisplayHelp(0, false, true, -1)
     end
 --// Closest
-    CheckFilterForEntity = function(entity, filter)
+    local CheckFilterForEntity = function(entity, filter)
         local model = GetEntityModel(entity)
 
         if type(filter) == "table" then
@@ -661,7 +583,7 @@ end)
         end
     end
 
-    GetClosestEntity = function(entities, coords, radius, filter)
+    local GetClosestEntity = function(entities, coords, radius, filter)
         local closest = {
             handle   = nil,
             distance = 999,
@@ -682,10 +604,10 @@ end)
             end
         end
 
-        return closest
+        return closest.handle
     end
 
-    GetEntitiesInArea = function(entities, coords, radius, filter)
+    local GetEntitiesInArea = function(entities, coords, radius, filter)
         local result = {}
         
         for i=1, #entities do
@@ -710,6 +632,7 @@ end)
     ---
     
     GetClosestObject = function(coords, radius, model)
+        coords = coords or GetEntityCoords(uPlayer.ped)
         model = type(model) == "string" and GetHashKey(model) or model
 
         return GetClosestObjectOfType(coords, radius, model)
@@ -830,23 +753,15 @@ end)
     end
 
 --// Client cache
-    SetResourceCache = function(key, value)
-        SetResourceKvp(key, value)
-    end
+    GetResourceKvpString = function(key, default)
+        local value = GetResourceKvpString(key)
 
-    GetResourceCache = function(key, default)
-        local _ = GetResourceKvpString(key)
-
-        if _ then
-            return _, true
+        if value then
+            return value
         elseif default then
             SetResourceKvp(key, default)
-            return default, false
+            return default
         end
-    end
-
-    DelResourceCache = function(key)
-        DeleteResourceKvp(key)
     end
 --// Clipboard
     SetClipboard = function(text)
@@ -873,13 +788,6 @@ end)
     end)
 
 --// Other
-    CreatePermanentObject = function(...)
-        return TriggerServerCallback("Utility:CreatePermanentObject", ...)
-    end
-    DeletePermanentObject = function(netId)
-        SavedTriggerServerEvent("Utility:DeletePermanentObject", netId)
-    end
-
     SetEntityModel = function(entity, model)
         SavedTriggerServerEvent("Utility:SwapModel", GetEntityCoords(entity), GetEntityModel(entity), type(model) == "string" and GetHashKey(model) or model)
     end
@@ -892,7 +800,7 @@ end)
     CreateMissionText = function(msg, duration)            
         SetTextEntry_2("STRING")
         AddTextComponentString(msg)
-        DrawSubtitleTimed(duration or 60000 * 240, 1) -- 4h
+        DrawSubtitleTimed(duration or 60000 * 240, 1) -- 4h (~∞)
 
         return {
             delete = function()
@@ -901,8 +809,8 @@ end)
         }
     end
 
-    WaitNear = function(coords)
-        while #(uPlayer.coords - coords) > 10 do 
+    WaitNear = function(coords, radius)
+        while #(uPlayer.coords - coords) > (radius or 10) do 
             Citizen.Wait(100) 
         end
     end

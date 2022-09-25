@@ -119,7 +119,9 @@
             elseif args[1] == "report" then
                 os.execute('start "" "https://github.com/XenoS-ITA/utility_framework/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D"')
                 print("^2Report opened, please fill the form^0")
-                
+            
+            elseif args[1] == "update" then
+                CheckForUpdates()
             end
         end
     end, true)
@@ -186,7 +188,7 @@
     RegisterCommand("goto", function(source, args)
         local uPlayer = GetPlayer(source)
         
-        if source == 0 or uPlayer.group ~= "user" and args[1] then
+        if uPlayer.group ~= "user" and args[1] then
             local player = GetPlayerPed(tonumber(args[1]))
             
             SetEntityCoords(GetPlayerPed(source), GetEntityCoords(player))
@@ -196,7 +198,7 @@
     RegisterCommand("bring", function(source, args)
         local uPlayer = GetPlayer(source)
         
-        if source == 0 or uPlayer.group ~= "user" and args[1] then
+        if uPlayer.group ~= "user" and args[1] then
             local player = GetPlayerPed(tonumber(args[1]))
 
             SetEntityCoords(player, GetEntityCoords(GetPlayerPed(source)))
@@ -336,10 +338,13 @@
         -- 3 = reason (optional)
         -- 4 = amount
         if args[1] == "0" then args[1] = source end
-
-        local uSociety = Utility.Societies[args[2]]
-        if uSociety then
-            uSociety.CreateBill(args[1], args[3], args[4])
+        local uPlayer = GetPlayer(args[1])
+        
+        if source == 0 or uPlayer.group ~= "user" then
+            local uSociety = Utility.Societies[args[2]]
+            if uSociety then
+                uSociety.CreateBill(args[1], args[3], args[4])
+            end
         end
     end)
 

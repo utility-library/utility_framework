@@ -20,6 +20,7 @@ AddEventHandler("Utility:Loaded", function()
             uPlayer:Build(source)
         end
     
+        -- Set LocalPlayer datas
         for k,v in pairs(uPlayer) do
             if type(v) ~= "function" then
                 --print("Setting "..tostring(k).." to "..tostring(v).." for "..tostring(source))

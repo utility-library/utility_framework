@@ -32,7 +32,7 @@ RegisterCommand("testMenu", function()
         {text="Button", icon="mdiTestTube"},
     }, function(self, data)
         menu.sub("Test2", {
-            {text = "Diocane", icon = "mdiTestTube"}
+            {text = "Test1", icon = "mdiTestTube"}
         }, function(self, data)
             print("Sub: "..(data.count or data.text))
         end)
@@ -42,9 +42,9 @@ RegisterCommand("testMenu", function()
 end)
 
 RegisterCommand("testDialog", function()
-    CreateDialog("Import skin", "insert a description here nigga", {
-        {name = "Negro", placeholder = "frocio"}
+    CreateDialog("Import test", "insert a description here", {
+        {title = "test", placeholder = "test"}
     }, function(self, data)
-        print("Value: "..data.Negro)
+        print("Value: "..data.test)
     end)
 end)

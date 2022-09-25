@@ -151,23 +151,6 @@ local utfw = exports["utility_framework"]
             return TriggerServerCallback("Utility:GetComponents", plate)
         end)
 
-        exports("SpawnOwnedVehicle", function(plate, coords, network)
-            if utfw:IsPlateOwned(plate) then
-                local components = utfw:GetComponents(plate)
-                RequestModel(components.model)
-                
-                while not HasModelLoaded(components.model) do
-                    Citizen.Wait(1)
-                end
-
-                local veh = CreateVehicle(components.model, coords, 0.0, true)
-                SetVehicleComponents(veh, components)
-                return veh, true
-            else
-                return nil, false
-            end
-        end)
-
         exports("GetPlateData", function(plate)
             return TriggerServerCallbackAsync("Utility:uPlayer:GetPlateData", plate)
         end)

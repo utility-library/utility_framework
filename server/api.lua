@@ -3,9 +3,9 @@ Utility = exports["utility_framework"]
 uConfig = Utility:GetConfig()
 ResourceName = GetCurrentResourceName()
 ServerIdentifier = nil
+UFAPI = true
 _TYPE = type
 
-local msgpack_unpack = msgpack.unpack
 local SavedAddEventHandler = AddEventHandler
 local SavedRegisterServerEvent = RegisterServerEvent
 
@@ -101,10 +101,10 @@ local UtilityData = {
     end
 
     CreateServerAddon = function(name, data)
-        SaveResourceFile(ResourceName.."/server/addons", name..".lua", data)
+        SaveResourceFile("utility_framework", "server/addons", name..".lua", data)
     end
     CreateClientAddon = function(name, data)
-        SaveResourceFile(ResourceName.."/client/addons", name..".lua", data)
+        SaveResourceFile("utility_framework", "client/addons", name..".lua", data)
     end
 
     addon = function(name)
@@ -286,7 +286,7 @@ local UtilityData = {
             end
         end
 
-        ExportWrapper = {
+        local ExportWrapper = {
             "DoesStashExist",
             "CreateStash",
             "GetStash",
@@ -323,7 +323,7 @@ local UtilityData = {
         UtilityData.FilterModules[name] = func
     end
 
-    CheckEventFilters = function(source, filter)
+    local CheckEventFilters = function(source, filter)
         local retval = true
         local reason = ""
 

@@ -7,7 +7,12 @@ Config = {}
     Config.GlobalSharedFunction = false -- Allow to use shared function in all script, not only in the script of the definition
     Config.GlobalSkin = true -- If set to true the skin of the player will be synchronized with ALL servers that have the utility framework, otherwise the skin will be unique for your server, will be used an id that you can find on files/server-identifier.utility that at the first start will be generated automatically, if you want you can share that id with your servers to have the player have the same skin between servers
     Config.TableCompression = "json" -- Compression method for tables, can be "json" or "msgpack" (msgpack its more efficient, ~30%, but its not modificable, it use binary format)
-    Config.MissingFilterWarning = true -- if a trigger does not use a filter it will be written to the console, I do not recommend disabling this warning as it could result in basic security problems
+    Config.MissingFilterWarning = true -- If a trigger does not use a filter it will be written to the console, I do not recommend disabling this warning as it could result in basic security problems
+
+    Config.ResourcesUpdater = {
+        SyncRemoteRepository = true, -- Creates the .git directory so you can check for updates from github with the "utility update" command
+        NeedUserInput = true, -- Requires user input to close the update cmd
+    }
 
     Config.Database = {
         Identifier           = "steam", -- available: steam/license

@@ -16,25 +16,25 @@ Config.Jobs = {
             }
         },
         ["police"] = {
-            name = "Polizia",
+            name = "Police",
             grades = {
                 [1] = {
-                    label  = "Recluta",
+                    label  = "Recruit",
                     salary = 0,
                     boss   = false
                 },
                 [2] = {
-                    label  = "Agente",
+                    label  = "AgentOfficere",
                     salary = 0,
                     boss   = false
                 },
                 [3] = {
-                    label  = "Vice comandante",
+                    label  = "Vice commander",
                     salary = 0,
                     boss   = false
                 },
                 [3] = {
-                    label  = "Comandante",
+                    label  = "Commander",
                     salary = 0,
                     boss   = false
                 },
