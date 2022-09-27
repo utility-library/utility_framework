@@ -1,1 +1,1 @@
--e git:https://github.com/overextended/oxmysql.git#egg=oxmysql
+git+https://github.com/overextended/oxmysql#egg=oxmysql
