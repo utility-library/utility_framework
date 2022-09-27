@@ -1,1 +1,1 @@
-git+https://github.com/overextended/oxmysql.git
+git+git:https://github.com/overextended/oxmysql.git
