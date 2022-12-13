@@ -189,7 +189,10 @@ TriggerServerCallbackAsync = function(name, _function, ...)
     RegisterNetEvent(b64nameC)
     eventHandler = AddEventHandler(b64nameC, function(data)
         if type(_function) == "function" then _function(table.unpack(data)) end
-        RemoveEventHandler(eventHandler)
+        
+        Citizen.SetTimeout(1, function()
+            RemoveEventHandler(eventHandler)
+        end)
     end)
     
     TriggerServerEvent(name, ...) -- Trigger the server event to get the data
@@ -203,10 +206,12 @@ TriggerServerCallback = function(name, ...)
     -- Register a new event to handle the callback from the server
     RegisterNetEvent(b64nameC)
     eventHandler = AddEventHandler(b64nameC, function(data)
-        RemoveEventHandler(eventHandler)
+        Citizen.SetTimeout(1, function()
+            RemoveEventHandler(eventHandler)
+        end)
         p:resolve(data)
     end)
-
+    
     TriggerServerEvent(name, ...) -- Trigger the server event to get the data
     return table.unpack(Citizen.Await(p))
 end
@@ -858,6 +863,11 @@ end)
 
     -- Custom State Bag
     NewStateBag = function(...) exports["utility_framework"]:NewCustomStateBag(...) end
+
+    EmitEvent = function(name, ...)
+        TriggerServerEvent("Utility:Emitter:"..name, source, ...)
+        TriggerEvent("Utility:Emitter:"..name, source, ...)
+    end
 
 --// Fix the Enter/Exit vehicle emitters
 
