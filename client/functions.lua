@@ -443,7 +443,7 @@ ConvertKvp = function(string)
 end
 
 EmitEvent = function(name, ...)
-    TriggerClientEvent("Utility:Emitter:"..name, source, ...)
+    TriggerServerEvent("Utility:Emitter:"..name, source, ...)
     TriggerEvent("Utility:Emitter:"..name, source, ...)
 end
 

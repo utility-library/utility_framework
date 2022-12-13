@@ -4,6 +4,19 @@ game "gta5"
 author "XenoS.exe#2859"
 version '0.2.0'
 
+resource_type 'gametype' { name = 'Utility Framework' }
+lua54 "yes"
+
+ui_page "client/html/index.html"
+
+files {
+    "files/server-identifier.utility",
+    "server/addons/*.lua",
+    "client/addons/*.lua",
+    "client/api.lua",
+    "client/html/**.*"
+}
+
 client_scripts {
     "config.lua",
     "configs/*.lua",
@@ -48,15 +61,3 @@ server_export {
     "GetConfig",
     "SetItemUsable"
 }
-
-files {
-    "files/server-identifier.utility",
-    "server/addons/*.lua",
-    "client/addons/*.lua",
-    "client/api.lua",
-    "client/html/**.*"
-}
-
-ui_page "client/html/index.html"
-
-lua54 "yes"

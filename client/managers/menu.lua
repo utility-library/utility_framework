@@ -124,7 +124,7 @@ local CurrentDialog = {}
             self:open()
         end,
 
-        sub = function(title, menu, cb, close)
+        sub = function(self, title, menu, cb, close)
             local ParentMenu = CurrentMenu
             
             CreateMenu(title, menu, cb, function(self)    
@@ -137,7 +137,7 @@ local CurrentDialog = {}
             self._preventDefault = true
         end,
 
-        update = function(title, menu)
+        update = function(self, title, menu)
             self.menu = menu
             self.title = ConvertColors(title) -- convert to html color
 
@@ -215,7 +215,7 @@ local CurrentDialog = {}
             self:open()
         end,
 
-        update = function(title, description, inputs)
+        update = function(self, title, description, inputs)
             self.title = ConvertColors(self.title) -- convert to html color
             self.description = ConvertColors(self.description) -- convert to html color
 
