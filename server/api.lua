@@ -134,7 +134,9 @@ local UtilityData = {
             eventHandler = SavedAddEventHandler("Utility:External:"..name, function(data)
                 if source == id then
                     if type(_function) == "function" then _function(table.unpack(data)) end
-                    RemoveEventHandler(eventHandler)
+                    Citizen.SetTimeout(1, function()
+                        RemoveEventHandler(eventHandler)
+                    end)
                 end
             end)
             
@@ -151,7 +153,9 @@ local UtilityData = {
             eventHandler = SavedAddEventHandler("Utility:External:"..name, function(data)
                 if source == id then
                     p:resolve(data)
-                    RemoveEventHandler(eventHandler)
+                    Citizen.SetTimeout(1, function()
+                        RemoveEventHandler(eventHandler)
+                    end)
                 end
             end)
             
@@ -162,9 +166,10 @@ local UtilityData = {
 
         RegisterServerCallback = function(name, cb, filters)
             local b64nameC = enc.Utf8ToB64(name)
-            
+            local handler = nil
+
             RegisterServerEvent(name)
-            AddEventHandler(name, function(...)
+            handler = AddEventHandler(name, function(...)
                 local source = source
                 uPlayer = GetPreuPlayer(source)
                 
@@ -175,13 +180,16 @@ local UtilityData = {
                     TriggerClientEvent(b64nameC, source, _cb) -- Trigger the client event
                 end
             end, filters)
+
+            return handler
         end
     -- Item
         RegisterItemUsable = function(name, cb)
             Utility:SetItemUsable(name) -- Register the item usable in the Utility
+            local handler = nil
 
             RegisterServerEvent("Utility:Usable:"..name)
-            AddEventHandler("Utility:Usable:"..name, function(data)
+            handler = AddEventHandler("Utility:Usable:"..name, function(data)
                 uPlayer = GetPlayer(source)
                 
                 if uPlayer.HaveItemQuantity(name, 1, data) then
@@ -190,6 +198,8 @@ local UtilityData = {
                     EmitEvent("ItemUsed", uPlayer.source, name, data) -- Emit the event
                 end
             end)
+
+            return handler
         end
 
         ItemUsable = RegisterItemUsable -- Wrapper
@@ -323,18 +333,51 @@ local UtilityData = {
         UtilityData.FilterModules[name] = func
     end
 
-    local CheckEventFilters = function(source, filter)
+    local FilterParamConvertVariable = function(filter, args)
+        local argNumber = filter:sub(2, -1) -- escape the $
+
+        filter = args[tonumber(argNumber)]
+
+        return filter
+    end
+
+    local FilterParamIsAVariable = function(filter)
+        return type(filter) == "string" and filter:sub(1,1) == "$"
+    end
+
+    local CheckFilterParamsVariables = function(filter, args)
+        -- converts $1 with the first parameter variable
+        for i=1, #filter do
+            if FilterParamIsAVariable(filter[i]) then -- if the first char its $
+                print("Filter "..i.." its a variable")
+                filter[i] = FilterParamConvertVariable(filter[i], args) 
+            end
+        end
+
+        return filter
+    end
+
+    local CheckEventFilters = function(source, filter, args)
         local retval = true
         local reason = ""
 
-        for name, module in pairs(UtilityData.FilterModules) do            
-            if filter and filter[name] then
+        for name, module in pairs(UtilityData.FilterModules) do
+            local curFilter = filter[name]
+
+            if filter and curFilter then
                 local module_retval = nil
-                
-                if #filter[name] > 0 then -- if have index as number unpack it like args
-                    module_retval = module(source, table.unpack(filter[name]))
+
+                if #curFilter > 0 then -- if have index as number unpack it like args
+                    curFilter = CheckFilterParamsVariables(curFilter, args) -- Check and convert any variable
+
+                    -- Execute filter module (function)
+                    module_retval = module(source, table.unpack(curFilter))
                 else -- otherwise send it as is
-                    module_retval = module(source, filter[name])
+                    if FilterParamIsAVariable(curFilter) then
+                        curFilter = FilterParamConvertVariable(curFilter, args) -- Check and convert if is a variable
+                    end
+
+                    module_retval = module(source, curFilter)
                 end
 
                 if module_retval ~= true then
@@ -355,7 +398,7 @@ local UtilityData = {
         end
 
         if cb then
-            AddEventHandler(name, cb, filter)
+            return AddEventHandler(name, cb, filter)
         end
     end
 
@@ -370,7 +413,7 @@ local UtilityData = {
         if UtilityData.RegisteredEvents[name] then
             Citizen.CreateThread(function()
                 local encryptedName = enc.Utf8ToB64(name)
-                local filtered = UtilityData.FilteredEvents[name] or name:find("Utility:")
+                local filtered = filter or UtilityData.FilteredEvents[name] or name:find("Utility:")
                 
                 if Utility:GetConfig("Logs").Trigger.Registered and CanLog(name) then 
                     print("[^3Triggers^0] New trigger registered: ^1\""..name.."\"^0 => ^2\"Utility:External:"..encryptedName.."\"^0") 
@@ -386,13 +429,14 @@ local UtilityData = {
                     local source = source
 
                     if filtered then
-                        local retval, reason = CheckEventFilters(source, filter)
+                        -- filter or {} - Prevent errors from the internal events (Utility:)
+                        local retval, reason = CheckEventFilters(source, filter or {}, {...})
 
                         if retval then
                             uPlayer = GetPreuPlayer(source)
                             cb(...)
                         else
-                            uConfig.FilterFail(source, name, filter, reason)
+                            uConfig.FilterFail(source, name, filter or {}, reason)
                         end
                     else
                         uPlayer = GetPreuPlayer(source)
