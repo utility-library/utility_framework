@@ -126,7 +126,7 @@ LoadVehicles = function()
             if Config.Database.Identifier == "steam" then
                 vehicles[i].owner = "steam:110000"..vehicles[i].owner
             else
-                vehicles[i].owner = "license:"..vehicles[i].owner
+                vehicles[i].owner = Config.Database.Identifier..":"..vehicles[i].owner
             end
         end
 

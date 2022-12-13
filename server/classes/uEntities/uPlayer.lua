@@ -23,10 +23,10 @@ local uPlayer = class {
             self.uidentifier = self.identifier:gsub("steam:110000", "")
         else
             if not IsIdentifierSerialized(self.identifier) then 
-                self.identifier = "license:"..self.identifier
+                self.identifier = Config.Database.Identifier..":"..self.identifier
             end
 
-            self.uidentifier = self.identifier:gsub("license:", "")
+            self.uidentifier = self.identifier:gsub(Config.Database.Identifier+":", "")
         end
     end,
 
@@ -1037,7 +1037,7 @@ function uPlayerCreateMethods(self)
         end
         
         --[[
-            Get a value from the other info
+            Get a value from external
 
             key string = The key of the value
 
@@ -1049,22 +1049,24 @@ function uPlayerCreateMethods(self)
             else
                 check({id = "string"})
 
-                if self.external[id]:find("{") or self.external[id]:find("[") then
-                    local decoded = json.decode(self.external[id])
-    
-                    if decoded ~= nil then
-                        return decoded
+                if self.external[id] then
+                    if self.external[id]:find("{") or self.external[id]:find("[") then
+                        local decoded = json.decode(self.external[id])
+        
+                        if decoded ~= nil then
+                            return decoded
+                        else
+                            return self.external[id] or nil
+                        end
                     else
                         return self.external[id] or nil
                     end
-                else
-                    return self.external[id] or nil
                 end
             end
         end
                 
         --[[
-            Remove a value from the other info
+            Remove a value from external
 
             key string = The key of the value
         ]]
@@ -1238,7 +1240,7 @@ function uPlayerBuildInventory(self)
     return self
 end
 
-local steamCache = {}
+local identifiersCache = {}
 GetPlayer = function(identifier)
     if type(identifier) == "string" then
         return Utility.Players[identifier]
@@ -1247,11 +1249,11 @@ GetPlayer = function(identifier)
             return nil
         end
 
-        if not steamCache[identifier] then
-            steamCache[identifier] = GetuPlayerIdentifier(identifier)
+        if not identifiersCache[identifier] then
+            identifiersCache[identifier] = GetuPlayerIdentifier(identifier)
         end
 
-        return Utility.Players[steamCache[identifier]]
+        return Utility.Players[identifiersCache[identifier]]
     else
         return nil, "malformed data, only strings or numbers are valid"
     end

@@ -33,12 +33,12 @@ AddEventHandler("Utility:Loaded", function()
 end)
 
 
--- Maintenance, Ban and Steam check
+-- Maintenance, Ban and Identifier check
 AddEventHandler("playerConnecting", function(name, setKickReason, deferrals)
     local _source = source
     local identifier = GetuPlayerIdentifier(_source)
 
-    if not GetuPlayerIdentifier(_source) then
+    if not identifier then
         Log("NoIdentifier", "The player "..name.." dont have "..Config.Database.Identifier.." opened")
 
         CancelEvent()

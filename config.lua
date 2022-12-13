@@ -15,7 +15,7 @@ Config = {}
     }
 
     Config.Database = {
-        Identifier           = "steam", -- available: steam/license
+        Identifier           = "steam", -- available: steam/license/xbl/discord
         CreateOnFirstStartup = false,    -- Create the database on the first startup of the server
         SaveNameInDb         = true,    -- Save the name of the player in the database
         MaxDaysPlayer        = -1,      -- If a player doesn't login for this amount of days or plus he will be automatically deleted from the database (if you want to disable this function set it to -1)
@@ -44,14 +44,8 @@ Config = {}
     }
 
     Config.Group = {
-        ["steam:11000011525c3cc"] = "admin", -- xenos
-        ["steam:11000011cd5a037"] = "admin", -- markz
-        ["steam:11000013e487dbd"] = "admin", -- baffi
-        ["steam:110000116af8ccd"] = "admin", -- coliandro
-        ["steam:11000014525429a"] = "admin", -- si3mone
-        ["steam:110000110784a30"] = "admin", -- freez
-        ["steam:11000010b282d87"] = "admin", -- commander
-        ["steam:11000010e44d76f"] = "admin"
+        ["steam:11000011525c3cc"] = "admin", -- XenoS
+        ["steam:110000143bdfbd6"] = "admin", -- Starry
     }
 --// Other
     Config.Societies = {

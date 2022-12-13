@@ -256,6 +256,11 @@ local logId = math.random(0, 999)
     RemoveItemInternal = function(name, quantity, data, self)
         check({name = "string", quantity = "number"})
 
+        if quantity < 1 then
+            error("RemoveItem: Tried to remove a negative number (result: AddItem)")
+            return
+        end
+
         local type = IdentifyType(self)
         local inv = self[type]
         
@@ -434,9 +439,7 @@ local logId = math.random(0, 999)
 
     GetuPlayerIdentifier = function(source)
         for k,v in pairs(GetPlayerIdentifiers(source))do                            
-            if Config.Database.Identifier == "steam" and v:find("steam:") then
-                return v
-            elseif Config.Database.Identifier == "license" and v:find("license:") then
+            if v:find(Config.Database.Identifier..":") then
                 return v
             end
         end
