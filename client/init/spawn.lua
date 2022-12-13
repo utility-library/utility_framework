@@ -110,7 +110,7 @@ if Clothes == nil or next(Clothes) == nil then
 end
 
 -- Function
-function SetSkin(ped, k, v, temp)
+function SetSkin(ped, k, v)
     SetSkinPedProp = function(base, id)
         if k == base..'_1' then
             if v == -1 then
@@ -123,7 +123,7 @@ function SetSkin(ped, k, v, temp)
         end
     end
     
-    SetSkinPedHeadOverlay = function(base, id)
+    SetSkinPedHeadOverlayColor = function(base, id)
         if k == base.."_3" then 
             SetPedHeadOverlayColor(ped, id, 1, v, Clothes[base..'_4'])
         elseif k == base.."_4" then 
@@ -142,14 +142,14 @@ function SetSkin(ped, k, v, temp)
 
                 -- Update only the drawable (but keep the second)
                 if table == HeadOverlay then
-                    SetPedHeadOverlay(ped, overlayId, v, Clothes[second]/10 + 0.0)
+                    SetPedHeadOverlay(ped, overlayId-1, v, Clothes[second]/10 + 0.0)
                 else
                     SetPedComponentVariation(ped, overlayId, v, Clothes[second], 0)
                 end
             elseif k == second then
                 -- Update only the second (but keep the drawable)
                 if table == HeadOverlay then
-                    SetPedHeadOverlay(ped, overlayId, Clothes[drawable], v + 0.0)
+                    SetPedHeadOverlay(ped, overlayId-1, Clothes[drawable], v + 0.0)
                 else
                     SetPedComponentVariation(ped, overlayId, Clothes[drawable], v, 0)
                 end
@@ -169,17 +169,19 @@ function SetSkin(ped, k, v, temp)
         SetPedHeadOverlayColor(ped, 5, 2, Clothes['blush_3'])
     end
 
-    -- Beard
-    SetSkinPedHeadOverlay("beard", 1)
-    -- Eyebrows
-    SetSkinPedHeadOverlay("eyebrows", 2)
-    -- Makeup
-    SetSkinPedHeadOverlay("makeup", 4)
-    -- Lipstick
-    SetSkinPedHeadOverlay("lipstick", 8)
-
     -- Head overlay (blush, lipstick, ...)
     SetSkinMultiComponent(HeadOverlay)
+
+    -- Apply colors
+        -- Beard
+        SetSkinPedHeadOverlayColor("beard", 1)
+        -- Eyebrows
+        SetSkinPedHeadOverlayColor("eyebrows", 2)
+        -- Makeup
+        SetSkinPedHeadOverlayColor("makeup", 4)
+        -- Lipstick
+        SetSkinPedHeadOverlayColor("lipstick", 8)
+
     -- Component drawables (torso, tshirt, ...)
     SetSkinMultiComponent(ComponentVariation)
 
@@ -194,9 +196,7 @@ function SetSkin(ped, k, v, temp)
     -- Bracelets
     SetSkinPedProp("bracelets", 7)
 
-    if not temp then
-        Clothes[k] = v
-    end
+    Clothes[k] = v
 end
 
 function ApplySkin(skin, temp)
@@ -204,7 +204,7 @@ function ApplySkin(skin, temp)
 
     for k,v in pairs(skin) do
         print("Applying skin "..k.." "..v)
-        SetSkin(ped, k,v, temp)
+        SetSkin(ped, k,v)
 
         if not temp then
             SetResourceKvp(kvp, json.encode(Clothes))
@@ -389,11 +389,11 @@ function OpenSkinMenu(onclose, filter, noexport)
             end
 
             -- Update the menu but dont play the refresh animation
-            self.update("Skin Menu", content)
+            self:update("Skin Menu", content)
         end
     end, function(menu)
         if onclose then
-            onclose(function() 
+            onclose(function()
                 SetResourceKvp(kvp, json.encode(Clothes))
             end, menu)
         else
@@ -423,6 +423,10 @@ RegisterCommand("skin", function()
             save()
         end)
     end
+end)
+
+RegisterCommand("reloadSkin", function()
+    ApplySkin(Clothes, true)
 end)
 
 
